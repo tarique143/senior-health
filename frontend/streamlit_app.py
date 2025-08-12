@@ -6,8 +6,10 @@ from datetime import datetime
 
 # --- CONFIGURATION ---
 # This remains here as it's part of the login logic
-API_BASE_URL = "http://127.0.0.1:8000"
-
+if "API_BASE_URL" in st.secrets:
+    API_BASE_URL = st.secrets["API_BASE_URL"]
+else:
+    API_BASE_URL = "http://127.0.0.1:8000"
 
 # --- API CLIENT CLASS ---
 # This class is needed here for the login/register API calls

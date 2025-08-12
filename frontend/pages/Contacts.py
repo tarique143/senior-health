@@ -4,7 +4,10 @@ import streamlit as st
 import requests
 
 # --- CONFIGURATION & API CLIENT (Required on every page) ---
-API_BASE_URL = "http://127.0.0.1:8000"
+if "API_BASE_URL" in st.secrets:
+    API_BASE_URL = st.secrets["API_BASE_URL"]
+else:
+    API_BASE_URL = "http://127.0.0.1:8000"
 
 class ApiClient:
     def __init__(self, base_url):
