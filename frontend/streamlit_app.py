@@ -1,10 +1,10 @@
 # frontend/streamlit_app.py (Corrected Version 1)
-
+from datetime import datetime
 import streamlit as st
 import requests
 import time
 import os
-from datetime import datetime
+import pytz
 
 # --- CONFIGURATION & PAGE CONFIG ---
 st.set_page_config(page_title="Health Companion", layout="wide", initial_sidebar_state="auto")
@@ -35,6 +35,26 @@ class ApiClient:
 
 api = ApiClient(API_BASE_URL)
 
+  # Make sure this is at the top of the file
+                   # Add this new import
+
+def create_header():
+    # Set the timezone to Indian Standard Time
+    indian_timezone = pytz.timezone("Asia/Kolkata")
+    
+    # Get the current time in IST
+    now_ist = datetime.now(indian_timezone)
+    
+    # Format it
+    current_time = now_ist.strftime("%I:%M:%S %p")
+    current_date = now_ist.strftime("%A, %B %d, %Y")
+    
+    st.markdown(f"""
+        <div style="text-align: right; margin-bottom: 2rem;">
+            <h2 style="margin: 0; font-weight: 600;">{current_time}</h2>
+            <p style="margin: 0; color: #555;">{current_date}</p>
+        </div>
+    """, unsafe_allow_html=True)
 # --- STYLING FUNCTIONS ---
 def apply_global_styles():
     st.markdown("""
