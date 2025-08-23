@@ -1,4 +1,4 @@
-# frontend/pages/1_Dashboard.py (Updated with Quick Dial Buttons)
+# frontend/pages/Dashboard.py (Corrected Version)
 
 import streamlit as st
 import requests
@@ -13,7 +13,8 @@ else:
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
-        self.token = st.session_state.get("token", None)
+        ### <<< CHANGE HERE
+        self.token = st.session_state.get("access_token", None)
 
     def _get_headers(self):
         if self.token:
@@ -34,14 +35,15 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 # --- SECURITY CHECK (Required on every page) ---
-if 'token' not in st.session_state:
+### <<< CHANGE HERE
+if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
+    st.switch_page("streamlit_app.py") # Go back to login
     st.stop()
 
 # --- PAGE CONFIG AND STYLES ---
 st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
 
-# We add the specific style for the call link here
 st.markdown("""
     <style>
         .call-link {
@@ -95,12 +97,9 @@ with col2:
         if response and response.status_code == 200:
             contacts = response.json()
             if contacts:
-                # --- YEH BADLAV HUA HAI (START) ---
                 for contact in contacts:
                     phone_number = contact['phone_number']
-                    # Create a clickable link that opens the phone dialer
                     st.markdown(f'<a href="tel:{phone_number}" class="call-link">Call {contact["name"]}<br><small>{phone_number}</small></a>', unsafe_allow_html=True)
-                # --- YEH BADLAV HUA HAI (END) ---
             else:
                 st.write("You have not added any emergency contacts yet.")
         else:
