@@ -22,3 +22,5 @@ python-multipart
 
 # --- EMAIL FOR PASSWORD RESET ---
 fastapi-mail
+apscheduler
+
