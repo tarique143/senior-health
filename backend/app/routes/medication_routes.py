@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from typing import List
 
 # Local imports
-from .. import models
-from ..database import get_db
-from ..schemas import medication_schema
-from ..auth import get_current_user
+from . import models
+from .database import get_db
+from .schemas import medication_schema
+from .auth import get_current_user
 
 router = APIRouter(
     prefix="/medications",
