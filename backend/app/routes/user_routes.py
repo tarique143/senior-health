@@ -1,12 +1,12 @@
-# backend/app/routes/user_routes.py (Final Version)
+# backend/app/routes/user_routes.py (Updated for "Remember Me")
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile, Request
 from sqlalchemy.orm import Session
 from jose import jwt
 import shutil
 import os
 import uuid
+from datetime import timedelta # Yeh naya import hai
 
 # Absolute imports from the 'app' package root
 from app import models
@@ -28,7 +28,6 @@ router = APIRouter(
 
 # --- Upload Directory Setup ---
 UPLOAD_DIRECTORY = "static/profile_pics"
-# Ensure the directory exists upon application startup
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 
@@ -54,23 +53,49 @@ def register_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
     
     return new_user
 
+### --- LOGIN ENDPOINT MEIN BADLAV --- ###
 @router.post("/token", response_model=token_schema.Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Logs in a user and returns a JWT access token."""
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+async def login_for_access_token(request: Request, db: Session = Depends(get_db)):
+    """
+    Logs in a user and returns a JWT access token.
+    Handles 'remember_me' to provide a long-lived token.
+    """
+    # Hum 'request.form()' ka istemal kar rahe hain taaki 'remember_me' field ko bhi le sakein
+    # OAuth2PasswordRequestForm iski anumati nahi deta
+    form_data = await request.form()
+    username = form_data.get("username")
+    password = form_data.get("password")
+    
+    # Frontend se "true" (string) aayega. Usse boolean mein convert karein.
+    remember_me = form_data.get("remember_me", "false").lower() == "true"
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username and password are required."
+        )
+
+    user = db.query(models.User).filter(models.User.email == username).first()
+    if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": user.email})
+    # Expiry time set karein
+    if remember_me:
+        expires_delta = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS_REMEMBER)
+    else:
+        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=expires_delta)
+    
     return {"access_token": access_token, "token_type": "bearer"}
+### --- LOGIN ENDPOINT MEIN BADLAV (END) --- ###
 
 
 # --- Password Reset Endpoints ---
-
 @router.post("/forgot-password")
 async def forgot_password(
     request: user_schema.ForgotPasswordRequest,
@@ -79,23 +104,18 @@ async def forgot_password(
 ):
     """Handles password reset request. Generates a token and sends a reset email."""
     user = db.query(models.User).filter(models.User.email == request.email).first()
-    if not user:
-        return {"message": "If an account with this email exists, a reset link has been sent."}
-
-    password_reset_token = create_password_reset_token(email=user.email)
-    
-    background_tasks.add_task(
-        send_password_reset_email, email=user.email, token=password_reset_token
-    )
+    # Don't reveal if the user exists or not for security reasons
+    if user:
+        password_reset_token = create_password_reset_token(email=user.email)
+        background_tasks.add_task(
+            send_password_reset_email, email=user.email, token=password_reset_token
+        )
     
     return {"message": "If an account with this email exists, a reset link has been sent."}
 
 
 @router.post("/reset-password")
-def reset_password(
-    request: user_schema.ResetPasswordRequest,
-    db: Session = Depends(get_db)
-):
+def reset_password(request: user_schema.ResetPasswordRequest, db: Session = Depends(get_db)):
     """Resets the user's password using a valid token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -103,24 +123,17 @@ def reset_password(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
-            request.token, 
-            settings.SECRET_KEY, 
-            algorithms=[settings.ALGORITHM]
-        )
-        if payload.get("scope") != "password_reset":
-            raise credentials_exception
+        payload = jwt.decode(request.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("scope") != "password_reset": raise credentials_exception
         email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
+        if email is None: raise credentials_exception
     except jwt.ExpiredSignatureError:
-         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Reset token has expired.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Reset token has expired.")
     except jwt.JWTError:
         raise credentials_exception
 
     user = db.query(models.User).filter(models.User.email == email).first()
-    if user is None:
-        raise credentials_exception
+    if user is None: raise credentials_exception
 
     user.hashed_password = hash_password(request.new_password)
     db.add(user)
@@ -130,7 +143,6 @@ def reset_password(
 
 
 # --- Profile Photo Upload Endpoint ---
-
 @router.post("/me/photo", response_model=user_schema.UserShow)
 def upload_profile_photo(
     file: UploadFile = File(...),
@@ -162,7 +174,6 @@ def upload_profile_photo(
 
 
 # --- User Profile Management Endpoints ---
-
 @router.get("/me", response_model=user_schema.UserShow)
 def read_current_user_profile(current_user: models.User = Depends(get_current_user)):
     """Gets the profile information of the currently logged-in user."""
@@ -174,7 +185,7 @@ def update_current_user_profile(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Updates the profile information (name, DOB, address) of the current user."""
+    """Updates the profile information of the current user."""
     update_data = user_update.model_dump(exclude_unset=True)
 
     for key, value in update_data.items():
