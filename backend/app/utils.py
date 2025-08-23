@@ -2,7 +2,7 @@
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr
-from ..config import settings
+from .config import settings
 import jwt
 from datetime import datetime, timedelta
 
