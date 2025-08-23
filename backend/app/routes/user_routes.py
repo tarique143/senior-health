@@ -10,10 +10,10 @@ import os
 import uuid
 
 # Local imports
-from .. import models
-from ..database import get_db
-from ..schemas import user_schema, token_schema
-from ..auth import (
+from . import models
+from .database import get_db
+from .schemas import user_schema, token_schema
+from .auth import (
     hash_password,
     verify_password,
     create_access_token,
