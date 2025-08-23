@@ -1,4 +1,4 @@
-# frontend/pages/Reset_Password.py (Nayi File)
+# frontend/pages/Reset_Password.py (Verified - No Changes Needed)
 
 import streamlit as st
 import requests
@@ -34,7 +34,7 @@ st.markdown("""
 # --- PAGE LOGIC ---
 st.title("🔑 Set Your New Password")
 
-# URL se token nikaalein (e.g., ?token=xyz)
+# This 'token' correctly comes from the URL query parameter, not session state.
 query_params = st.query_params
 token = query_params.get("token")
 
@@ -61,9 +61,7 @@ else:
                     )
                 
                 if response and response.status_code == 200:
-                    # Ek flag set karein taaki login page par success message dikhe
                     st.session_state['password_reset_success'] = True
-                    # User ko login page par redirect karein
                     st.switch_page("streamlit_app.py")
                 else:
                     error_detail = "Invalid or expired token. Please request a new reset link."
@@ -71,5 +69,5 @@ else:
                         try:
                             error_detail = response.json().get('detail', error_detail)
                         except:
-                            pass # Use default error
+                            pass
                     st.error(f"Failed to reset password: {error_detail}")
