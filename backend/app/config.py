@@ -1,4 +1,4 @@
-# backend/app/config.py (Nayi File)
+# backend/app/config.py (Corrected Version)
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     """
     Manages application settings by loading them from a .env file.
     """
-    # This line tells Pydantic to load settings from a file named '.env'
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # --- Database Settings ---
@@ -16,6 +15,14 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    # --- Email Settings (ADD THIS SECTION) ---
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+    MAIL_FROM_NAME: str
 
 # We create a single, global instance of the Settings class.
 # We will import this 'settings' object into other files.
