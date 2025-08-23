@@ -38,7 +38,7 @@ def build_sidebar():
         st.page_link("pages/Medications.py", label=" Medications", icon="💊")
         st.page_link("pages/Appointments.py", label=" Appointments", icon="🗓️")
         st.page_link("pages/Contacts.py", label=" Contacts", icon="🆘")
-        st.page_link("pages/Settings.py", label="⚙ Settings", icon="⚙️")
+        st.page_link("pages/Settings.py", label=" Settings", icon="⚙️")
         
         st.markdown("---")
         if st.button("Logout", use_container_width=True):
