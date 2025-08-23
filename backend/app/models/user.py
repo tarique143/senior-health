@@ -1,4 +1,5 @@
-# backend/app/models/user.py
+# backend/app/models/user.py (Updated)
+
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy.orm import relationship
 from ..database import Base
@@ -12,8 +13,11 @@ class User(Base):
     hashed_password = Column(String)
     date_of_birth = Column(Date, nullable=True)
     address = Column(String, nullable=True)
+    
+    # === YEH NAYI LINE ADD KAREIN ===
+    profile_picture_url = Column(String, nullable=True)
 
-    # Use strings for class names in relationships to avoid circular imports
-    medications = relationship("Medication", back_populates="owner")
-    appointments = relationship("Appointment", back_populates="owner")
-    contacts = relationship("Contact", back_populates="owner")
+    # Relationships
+    medications = relationship("Medication", back_populates="owner", cascade="all, delete-orphan")
+    appointments = relationship("Appointment", back_populates="owner", cascade="all, delete-orphan")
+    contacts = relationship("Contact", back_populates="owner", cascade="all, delete-orphan")
