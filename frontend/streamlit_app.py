@@ -1,4 +1,4 @@
-# frontend/streamlit_app.py (Fully Complete Final Version)
+# frontend/streamlit_app.py (Fully Complete Final Version with Duplicate Key Fix)
 
 import streamlit as st
 import requests
@@ -69,7 +69,6 @@ def apply_themed_styles():
         </style>
     """, unsafe_allow_html=True)
 
-
 # --- HEADER COMPONENT (Indian Time ke saath) ---
 def create_header():
     indian_timezone = pytz.timezone("Asia/Kolkata")
@@ -110,14 +109,16 @@ def show_login_register_page():
                     st.session_state['user_email'] = email
                     
                     if remember_me:
-                        localS.setItem("access_token", token)
-                        localS.setItem("user_email", email)
+                        # Har local storage operation ke liye unique key
+                        localS.setItem("access_token", token, key="storage_access_token_set")
+                        localS.setItem("user_email", email, key="storage_user_email_set")
                     
                     st.toast("Login successful!", icon="🎉")
                     st.rerun()
                 else:
                     st.error("Incorrect email or password.")
         
+        # --- FORGOT PASSWORD LOGIC (COMPLETE) ---
         if st.button("Forgot Password?", key="forgot_pass_btn"):
             st.session_state.show_forgot_password = True
             st.rerun()
@@ -135,6 +136,7 @@ def show_login_register_page():
                     st.rerun()
 
     with register_tab:
+        # --- REGISTER FORM LOGIC (COMPLETE) ---
         with st.form("register_form", clear_on_submit=True):
             full_name = st.text_input("Full Name")
             reg_email = st.text_input("Email", key="reg_email")
@@ -176,66 +178,28 @@ def show_main_app_area():
     st.subheader("What would you like to do?")
     col1, col2, col3, col4 = st.columns(4)
 
-    ### --- NAVIGATION CARDS SECTION (COMPLETE CODE) --- ###
+    # --- NAVIGATION CARDS (COMPLETE) ---
     with col1:
-        st.markdown("""
-        <div class="nav-card">
-            <div>
-                <div class="icon">📈</div>
-                <h3>Dashboard</h3>
-                <p>View your complete daily schedule and health tips.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Open Dashboard", use_container_width=True, key="dash_btn"):
-            st.switch_page("pages/Dashboard.py")
-
+        st.markdown("""<div class="nav-card"><div><div class="icon">📈</div><h3>Dashboard</h3><p>View your complete daily schedule and health tips.</p></div></div>""", unsafe_allow_html=True)
+        if st.button("Open Dashboard", use_container_width=True, key="dash_btn"): st.switch_page("pages/Dashboard.py")
     with col2:
-        st.markdown("""
-        <div class="nav-card">
-            <div>
-                <div class="icon">💊</div>
-                <h3>Medications</h3>
-                <p>Add, edit, or view your medication list and schedule.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Manage Meds", use_container_width=True, key="med_btn"):
-            st.switch_page("pages/Medications.py")
-    
+        st.markdown("""<div class="nav-card"><div><div class="icon">💊</div><h3>Medications</h3><p>Add, edit, or view your medication list and schedule.</p></div></div>""", unsafe_allow_html=True)
+        if st.button("Manage Meds", use_container_width=True, key="med_btn"): st.switch_page("pages/Medications.py")
     with col3:
-        st.markdown("""
-        <div class="nav-card">
-            <div>
-                <div class="icon">🗓️</div>
-                <h3>Appointments</h3>
-                <p>Keep track of all your upcoming doctor visits.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Manage Appointments", use_container_width=True, key="app_btn"):
-            st.switch_page("pages/Appointments.py")
-            
+        st.markdown("""<div class="nav-card"><div><div class="icon">🗓️</div><h3>Appointments</h3><p>Keep track of all your upcoming doctor visits.</p></div></div>""", unsafe_allow_html=True)
+        if st.button("Manage Appointments", use_container_width=True, key="app_btn"): st.switch_page("pages/Appointments.py")
     with col4:
-        st.markdown("""
-        <div class="nav-card">
-            <div>
-                <div class="icon">⚙️</div>
-                <h3>Settings</h3>
-                <p>Update your profile, password, and contacts.</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Go to Settings", use_container_width=True, key="set_btn"):
-            st.switch_page("pages/Settings.py")
+        st.markdown("""<div class="nav-card"><div><div class="icon">⚙️</div><h3>Settings</h3><p>Update your profile, password, and contacts.</p></div></div>""", unsafe_allow_html=True)
+        if st.button("Go to Settings", use_container_width=True, key="set_btn"): st.switch_page("pages/Settings.py")
 
 ### --- MAIN APPLICATION CONTROLLER --- ###
 def main():
     apply_global_styles()
 
     if 'access_token' not in st.session_state:
-        token = localS.getItem("access_token")
-        email = localS.getItem("user_email")
+        # Har local storage operation ke liye unique key
+        token = localS.getItem("access_token", key="storage_access_token_get")
+        email = localS.getItem("user_email", key="storage_user_email_get")
         if token and email:
             st.session_state['access_token'] = token
             st.session_state['user_email'] = email
@@ -248,8 +212,9 @@ def main():
         st.sidebar.title("Navigation")
         st.sidebar.markdown(f"Welcome, \n**{st.session_state.get('user_email', 'User')}**!")
         if st.sidebar.button("Logout", use_container_width=True):
-            localS.deleteItem("access_token")
-            localS.deleteItem("user_email")
+            # Har local storage operation ke liye unique key
+            localS.deleteItem("access_token", key="storage_access_token_del")
+            localS.deleteItem("user_email", key="storage_user_email_del")
             st.session_state.clear()
             st.toast("Logged out successfully.")
             st.rerun()
