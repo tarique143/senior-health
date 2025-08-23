@@ -1,4 +1,4 @@
-# backend/app/config.py (Corrected Version)
+# backend/app/config.py (Updated Version)
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,13 +16,16 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
-    # --- Email Settings (ADD THIS SECTION) ---
+    # --- Email Settings ---
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
     MAIL_PORT: int
     MAIL_SERVER: str
     MAIL_FROM_NAME: str
+
+    # --- Frontend Settings (THIS IS THE NEW ADDITION) ---
+    FRONTEND_URL: str
 
 # We create a single, global instance of the Settings class.
 # We will import this 'settings' object into other files.
