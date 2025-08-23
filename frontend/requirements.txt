@@ -2,3 +2,4 @@ streamlit
 requests
 pytz
 streamlit-local-storage
+streamlit-calendar
