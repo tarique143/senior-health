@@ -235,28 +235,10 @@ def main():
             st.session_state['user_email'] = email
             st.rerun()
 
-    if "access_token" not in st.session_state:
-        show_login_register_page() 
-    else:
-        apply_themed_styles()
+    
         
-        with st.sidebar:
-            st.title("Health Companion")
-            st.markdown(f"Welcome, \n**{st.session_state.get('user_email', 'User')}**!")
-            st.markdown("---")
-            st.page_link("streamlit_app.py", label="🏠 Home", icon="🏠")
-            st.page_link("pages/Dashboard.py", label="📈 Dashboard", icon="📈")
-            st.page_link("pages/Medications.py", label="💊 Medications", icon="💊")
-            st.page_link("pages/Appointments.py", label="🗓️ Appointments", icon="🗓️")
-            st.page_link("pages/Contacts.py", label="🆘 Contacts", icon="🆘")
-            st.page_link("pages/Settings.py", label="⚙️ Settings", icon="⚙️")
-            st.markdown("---")
-            if st.button("Logout", use_container_width=True):
-                localS.deleteItem("access_token", key="storage_access_token_del")
-                localS.deleteItem("user_email", key="storage_user_email_del")
-                st.session_state.clear()
-                st.toast("Logged out successfully.")
-                st.rerun()
+         
+            
         
         response = api.get("/contacts/")
         if response and response.status_code == 200 and response.json():
