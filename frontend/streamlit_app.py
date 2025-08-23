@@ -118,34 +118,27 @@ def show_main_app_area():
         if st.button("➕ Add Emergency Contact", use_container_width=True): st.switch_page("pages/Contacts.py")
     st.markdown("---"); st.subheader("Navigate to a Section")
     nav_cols = st.columns(4)
-    # Navigation Cards
-    with nav_cols[0]:
-        st.markdown("""<div class="nav-card"><div><div class="icon">📈</div><h3>Dashboard</h3><p>View your daily schedule and health tips.</p></div></div>""", unsafe_allow_html=True)
-        if st.button("Open Dashboard", use_container_width=True, key="dash_btn"): st.switch_page("pages/Dashboard.py")
-    with nav_cols[1]:
-        st.markdown("""<div class="nav-card"><div><div class="icon">💊</div><h3>Medications</h3><p>Add, edit, or view your medication list.</p></div></div>""", unsafe_allow_html=True)
-        if st.button("Manage Meds", use_container_width=True, key="med_btn"): st.switch_page("pages/Medications.py")
-    with nav_cols[2]:
-        st.markdown("""<div class="nav-card"><div><div class="icon">🗓️</div><h3>Appointments</h3><p>Keep track of all your upcoming doctor visits.</p></div></div>""", unsafe_allow_html=True)
-        if st.button("Manage Appointments", use_container_width=True, key="app_btn"): st.switch_page("pages/Appointments.py")
-    with nav_cols[3]:
-        st.markdown("""<div class="nav-card"><div><div class="icon">⚙️</div><h3>Settings</h3><p>Update your profile, password, and contacts.</p></div></div>""", unsafe_allow_html=True)
-        if st.button("Go to Settings", use_container_width=True, key="set_btn"): st.switch_page("pages/Settings.py")
+    with nav_cols[0]: st.markdown("""<div class="nav-card"><div><div class="icon">📈</div><h3>Dashboard</h3><p>View your daily schedule and health tips.</p></div></div>""", unsafe_allow_html=True); st.button("Open Dashboard", use_container_width=True, key="dash_btn", on_click=st.switch_page, args=("pages/Dashboard.py",))
+    with nav_cols[1]: st.markdown("""<div class="nav-card"><div><div class="icon">💊</div><h3>Medications</h3><p>Add, edit, or view your medication list.</p></div></div>""", unsafe_allow_html=True); st.button("Manage Meds", use_container_width=True, key="med_btn", on_click=st.switch_page, args=("pages/Medications.py",))
+    with nav_cols[2]: st.markdown("""<div class="nav-card"><div><div class="icon">🗓️</div><h3>Appointments</h3><p>Keep track of all your upcoming doctor visits.</p></div></div>""", unsafe_allow_html=True); st.button("Manage Appointments", use_container_width=True, key="app_btn", on_click=st.switch_page, args=("pages/Appointments.py",))
+    with nav_cols[3]: st.markdown("""<div class="nav-card"><div><div class="icon">⚙️</div><h3>Settings</h3><p>Update your profile, password, and contacts.</p></div></div>""", unsafe_allow_html=True); st.button("Go to Settings", use_container_width=True, key="set_btn", on_click=st.switch_page, args=("pages/Settings.py",))
 
 ### --- MAIN APPLICATION CONTROLLER --- ###
 def main():
-    ### --- BADLAV YAHAN HUA HAI (TypeError Fix) --- ###
-    # Yeh flag ensure karega ki local storage check sirf ek baar ho.
-    if 'initial_check_done' not in st.session_state:
-        if 'access_token' not in st.session_state:
+    if 'access_token' not in st.session_state:
+        ### --- AAKHRI AUR FINAL FIX YAHAN HAI (TypeError Fix) --- ###
+        try:
+            # Yeh code pehli baar load hone par TypeError de sakta hai
             token = localS.getItem("access_token", key="storage_access_token_get")
             email = localS.getItem("user_email", key="storage_user_email_get")
             if token and email:
                 st.session_state['access_token'] = token
                 st.session_state['user_email'] = email
-        st.session_state.initial_check_done = True
-        st.rerun()
-
+                st.rerun() # Token milne par page ko refresh karein
+        except TypeError:
+            # Agar error aaye, to use ignore karein aur login page dikhayein
+            pass
+    
     if "access_token" not in st.session_state:
         show_login_register_page() 
     else:
