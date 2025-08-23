@@ -3,6 +3,7 @@
 import streamlit as st
 import requests
 from datetime import datetime, date
+import os
 
 # Sabse pehla Streamlit command hamesha st.set_page_config hona chahiye
 st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
