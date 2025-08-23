@@ -1,4 +1,4 @@
-# frontend/pages/Contacts.py (Nayi File)
+# frontend/pages/Contacts.py (Corrected Version)
 
 import streamlit as st
 import requests
@@ -10,11 +10,11 @@ st.set_page_config(page_title="Emergency Contacts", layout="wide")
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 class ApiClient:
-    # (Pichli file se same ApiClient class yahan copy karein)
     def __init__(self, base_url):
         self.base_url = base_url
     def _get_headers(self):
-        token = st.session_state.get("token")
+        ### <<< CHANGE HERE
+        token = st.session_state.get("access_token")
         if not token:
             st.warning("Please login first.")
             st.switch_page("streamlit_app.py")
@@ -33,7 +33,8 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 # --- SECURITY CHECK ---
-if 'token' not in st.session_state:
+### <<< CHANGE HERE
+if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
     st.switch_page("streamlit_app.py")
     st.stop()
