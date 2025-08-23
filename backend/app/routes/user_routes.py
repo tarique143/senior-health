@@ -1,6 +1,5 @@
-# backend/app/routes/user_routes.py (Updated with All Features)
+# backend/app/routes/user_routes.py (Final Version)
 
-### --- NAYE IMPORTS --- ###
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -9,33 +8,31 @@ import shutil
 import os
 import uuid
 
-# Local imports
-from . import models
-from .database import get_db
-from .schemas import user_schema, token_schema
-from .auth import (
+# Absolute imports from the 'app' package root
+from app import models
+from app.database import get_db
+from app.schemas import user_schema, token_schema
+from app.auth import (
     hash_password,
     verify_password,
     create_access_token,
     get_current_user
 )
-# Naye utility aur config imports
-from ..utils import create_password_reset_token, send_password_reset_email
-from ..config import settings
-
+from app.utils import create_password_reset_token, send_password_reset_email
+from app.config import settings
 
 router = APIRouter(
     prefix="/users",
     tags=["Users & Authentication"]
 )
 
-### --- UPLOAD DIRECTORY SETUP --- ###
+# --- Upload Directory Setup ---
 UPLOAD_DIRECTORY = "static/profile_pics"
-# Directory banayein agar मौजूद nahi hai
+# Ensure the directory exists upon application startup
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
 
-# --- Authentication Endpoints (No Changes) ---
+# --- Authentication Endpoints ---
 
 @router.post("/register", response_model=user_schema.UserShow, status_code=status.HTTP_201_CREATED)
 def register_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
@@ -72,7 +69,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-### --- PASSWORD RESET ENDPOINTS (NAYA SECTION) --- ###
+# --- Password Reset Endpoints ---
 
 @router.post("/forgot-password")
 async def forgot_password(
@@ -80,12 +77,9 @@ async def forgot_password(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """
-    Handles password reset request. Generates a token and sends a reset email.
-    """
+    """Handles password reset request. Generates a token and sends a reset email."""
     user = db.query(models.User).filter(models.User.email == request.email).first()
     if not user:
-        # Security ke liye hum hamesha success message bhejenge
         return {"message": "If an account with this email exists, a reset link has been sent."}
 
     password_reset_token = create_password_reset_token(email=user.email)
@@ -102,9 +96,7 @@ def reset_password(
     request: user_schema.ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
-    """
-    Resets the user's password using a valid token.
-    """
+    """Resets the user's password using a valid token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate token. It may be invalid or expired.",
@@ -137,7 +129,7 @@ def reset_password(
     return {"message": "Password has been reset successfully."}
 
 
-### --- PROFILE PHOTO UPLOAD ENDPOINT (NAYA SECTION) --- ###
+# --- Profile Photo Upload Endpoint ---
 
 @router.post("/me/photo", response_model=user_schema.UserShow)
 def upload_profile_photo(
@@ -146,10 +138,9 @@ def upload_profile_photo(
     current_user: models.User = Depends(get_current_user)
 ):
     """Uploads or updates the profile photo for the current user."""
-    
-    extension = file.filename.split(".")[-1]
+    extension = file.filename.split(".")[-1].lower()
     if extension not in ["png", "jpg", "jpeg"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image format.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image format. Please use PNG, JPG, or JPEG.")
         
     unique_filename = f"{uuid.uuid4()}.{extension}"
     file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
@@ -160,7 +151,6 @@ def upload_profile_photo(
     finally:
         file.file.close()
 
-    # Database mein relative URL path save karein
     url_path = f"/profile_pics/{unique_filename}"
     current_user.profile_picture_url = url_path
     
@@ -171,7 +161,7 @@ def upload_profile_photo(
     return current_user
 
 
-# --- User Profile Management Endpoints (No Changes) ---
+# --- User Profile Management Endpoints ---
 
 @router.get("/me", response_model=user_schema.UserShow)
 def read_current_user_profile(current_user: models.User = Depends(get_current_user)):
