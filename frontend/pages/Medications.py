@@ -1,4 +1,4 @@
-# frontend/pages/Medications.py (Nayi File)
+# frontend/pages/Medications.py (Corrected Version)
 
 import streamlit as st
 import requests
@@ -10,12 +10,12 @@ st.set_page_config(page_title="My Medications", layout="wide")
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
-# API Client ko behtar banaya gaya hai, har method ke liye
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
     def _get_headers(self):
-        token = st.session_state.get("token")
+        ### <<< CHANGE HERE
+        token = st.session_state.get("access_token")
         if not token:
             st.warning("Please login first.")
             st.switch_page("streamlit_app.py")
@@ -34,7 +34,8 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 # --- SECURITY CHECK ---
-if 'token' not in st.session_state:
+### <<< CHANGE HERE
+if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
     st.switch_page("streamlit_app.py")
     st.stop()
@@ -60,10 +61,8 @@ st.write("Manage your daily medication schedule here.")
 st.markdown("---")
 
 # --- FORM TO ADD/EDIT MEDICATION ---
-# Hum expander ka istemal karenge taaki form chupa rahe jab zaroorat na ho
 with st.expander("**➕ Add New Medication** or select one below to edit", expanded=st.session_state.get('edit_mode', False)):
     
-    # Agar edit mode mein hain, to purani values load karo
     edit_med_id = st.session_state.get('edit_med_id')
     default_values = {}
     if edit_med_id and 'medications' in st.session_state:
@@ -82,7 +81,6 @@ with st.expander("**➕ Add New Medication** or select one below to edit", expan
         timing = st.time_input("Time to Take", value=default_values.get('timing', datetime.now().time()))
         is_active = st.checkbox("Medication is currently active", value=default_values.get('is_active', True))
         
-        # Submit buttons
         submitted = st.form_submit_button(
             "Update Medication" if st.session_state.get('edit_mode') else "Add Medication", 
             type="primary"
@@ -96,21 +94,18 @@ with st.expander("**➕ Add New Medication** or select one below to edit", expan
                 "is_active": is_active
             }
             if st.session_state.get('edit_mode'):
-                # Update logic
                 response = api.put(f"/medications/{st.session_state.edit_med_id}", json=med_data)
                 if response and response.status_code == 200:
                     st.toast("Medication updated!", icon="✅")
                 else:
                     st.error("Failed to update medication.")
             else:
-                # Add logic
                 response = api.post("/medications/", json=med_data)
                 if response and response.status_code == 201:
                     st.toast("Medication added!", icon="🎉")
                 else:
                     st.error("Failed to add medication.")
             
-            # Reset state and refetch data
             st.session_state.edit_mode = False
             st.session_state.pop('edit_med_id', None)
             fetch_medications()
@@ -137,13 +132,11 @@ else:
                 st.write(f"**Status:** {status}")
             
             with col3:
-                # EDIT Button
                 if st.button("Edit", key=f"edit_{med['id']}", use_container_width=True):
                     st.session_state.edit_mode = True
                     st.session_state.edit_med_id = med['id']
                     st.rerun()
 
-                # DELETE Button
                 if st.button("Delete", key=f"delete_{med['id']}", type="secondary", use_container_width=True):
                     with st.spinner("Deleting..."):
                         response = api.delete(f"/medications/{med['id']}")
