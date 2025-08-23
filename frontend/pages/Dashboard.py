@@ -1,49 +1,47 @@
-# frontend/pages/Dashboard.py (Corrected Version)
+# /frontend/pages/Dashboard.py (Final Version)
 
 import streamlit as st
 import requests
 from datetime import datetime
 
-# --- CONFIGURATION & API CLIENT (Required on every page) ---
-if "API_BASE_URL" in st.secrets:
-    API_BASE_URL = st.secrets["API_BASE_URL"]
-else:
-    API_BASE_URL = "http://127.0.0.1:8000"
+# Hamari nayi UI file se functions import karein
+from ui_components import apply_styles, build_sidebar
+
+# Page ki shuruaat mein styles aur double-sidebar fix apply karein
+apply_styles()
+
+# --- CONFIGURATION & API CLIENT ---
+API_BASE_URL = st.secrets.get("API_BASE_URL", "http://127.0.0.1:8000")
 
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
-        ### <<< CHANGE HERE
         self.token = st.session_state.get("access_token", None)
-
     def _get_headers(self):
-        if self.token:
-            return {"Authorization": f"Bearer {self.token}"}
+        if self.token: return {"Authorization": f"Bearer {self.token}"}
         return {}
-
     def _make_request(self, method, endpoint, **kwargs):
         try:
-            response = requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), **kwargs)
-            return response
+            return requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), **kwargs)
         except requests.exceptions.ConnectionError:
             st.error("Connection Error: Could not connect to the backend server.")
             return None
-
     def get(self, endpoint, params=None):
         return self._make_request("GET", endpoint, params=params)
 
 api = ApiClient(API_BASE_URL)
 
-# --- SECURITY CHECK (Required on every page) ---
-### <<< CHANGE HERE
+# --- SECURITY CHECK ---
 if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
-    st.switch_page("streamlit_app.py") # Go back to login
+    st.switch_page("streamlit_app.py")
     st.stop()
 
-# --- PAGE CONFIG AND STYLES ---
+# --- PAGE SETUP ---
 st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
+build_sidebar() # Hamara custom sidebar banayein
 
+# --- STYLING for this page ---
 st.markdown("""
     <style>
         .call-link {
@@ -52,12 +50,16 @@ st.markdown("""
             color: #c92a2a; font-weight: bold; margin-bottom: 10px; border: 1px solid #ffc9c9;
         }
         .call-link:hover { background-color: #ffc9c9; color: #a71c1c; }
+        [data-baseweb="theme-dark"] .call-link {
+            background-color: #5c1a1a; border: 1px solid #a71c1c; color: #ffc9c9;
+        }
+        [data-baseweb="theme-dark"] .call-link:hover {
+            background-color: #a71c1c; color: white;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-
 # --- DASHBOARD PAGE CONTENT ---
-
 st.header("Today's Dashboard")
 col1, col2 = st.columns(2)
 
