@@ -1,7 +1,7 @@
 # backend/app/models/contact.py
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from app.database import Base
 
 class Contact(Base):
     __tablename__ = "contacts"
