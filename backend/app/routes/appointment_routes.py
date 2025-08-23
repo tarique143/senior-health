@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from .. import models
-from ..database import get_db
-from ..schemas import appointment_schema
-from ..auth import get_current_user
+from . import models
+from .database import get_db
+from .schemas import appointment_schema
+from .auth import get_current_user
 
 router = APIRouter(
     prefix="/appointments",
