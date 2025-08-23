@@ -12,8 +12,8 @@ pydantic-settings
 python-dotenv
 
 # --- Authentication & Security ---
-# Version conflicts ko theek karne ke liye specific versions
-passlib[bcrypt]==5.3.1
+# passlib ka version theek kar diya gaya hai
+passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 python-jose[cryptography]
 
@@ -21,5 +21,4 @@ python-jose[cryptography]
 python-multipart
 
 # --- EMAIL FOR PASSWORD RESET ---
-# Yeh line password reset ke liye zaroori hai
 fastapi-mail
