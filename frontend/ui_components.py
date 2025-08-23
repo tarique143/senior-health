@@ -33,12 +33,12 @@ def build_sidebar():
         st.markdown(f"Welcome, \n**{st.session_state.get('user_email', 'User')}**!")
         st.markdown("---")
         
-        st.page_link("streamlit_app.py", label="🏠 Home", icon="🏠")
-        st.page_link("pages/Dashboard.py", label="📈 Dashboard", icon="📈")
-        st.page_link("pages/Medications.py", label="💊 Medications", icon="💊")
-        st.page_link("pages/Appointments.py", label="🗓️ Appointments", icon="🗓️")
-        st.page_link("pages/Contacts.py", label="🆘 Contacts", icon="🆘")
-        st.page_link("pages/Settings.py", label="⚙️ Settings", icon="⚙️")
+        st.page_link("streamlit_app.py", label=" Home", icon="🏠")
+        st.page_link("pages/Dashboard.py", label=" Dashboard", icon="📈")
+        st.page_link("pages/Medications.py", label=" Medications", icon="💊")
+        st.page_link("pages/Appointments.py", label=" Appointments", icon="🗓️")
+        st.page_link("pages/Contacts.py", label=" Contacts", icon="🆘")
+        st.page_link("pages/Settings.py", label="⚙ Settings", icon="⚙️")
         
         st.markdown("---")
         if st.button("Logout", use_container_width=True):
