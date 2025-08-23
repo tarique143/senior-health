@@ -1,7 +1,8 @@
-# backend/app/models/medication.py
+# backend/app/models/medication.py (Fully Updated)
+
 from sqlalchemy import Column, Integer, String, Time, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from app.database import Base  # <-- BADLAV YAHAN KIYA GAYA HAI
 
 class Medication(Base):
     __tablename__ = "medications"
@@ -14,5 +15,4 @@ class Medication(Base):
     
     owner_id = Column(Integer, ForeignKey("users.id"))
 
-    # Use a string "User" here to prevent circular import errors
     owner = relationship("User", back_populates="medications")
