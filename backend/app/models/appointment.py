@@ -1,7 +1,7 @@
 # backend/app/models/appointment.py
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from ..database import Base
+from .database import Base
 
 class Appointment(Base):
     __tablename__ = "appointments"
