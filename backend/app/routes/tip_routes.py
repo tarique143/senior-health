@@ -1,15 +1,15 @@
-# backend/app/routes/tip_routes.py
+# backend/app/routes/tip_routes.py (Corrected Version)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 import random
 
-from . import models
-from .datfrom app import models
+# Corrected local imports
+from app import models
 from app.database import get_db
 from app.schemas import tip_schema
-from app.auth import get_current_userr # To protect routes if needed
+from app.auth import get_current_user # To protect routes if needed
 
 # Create a new router for tips
 router = APIRouter(
@@ -52,7 +52,8 @@ def create_tip(
     Creates a new health tip in the database.
     (This could be an admin-only endpoint in a real application).
     """
-    new_tip = models.Tip(**tip.dict())
+    # Updated .dict() to .model_dump() for Pydantic v2 consistency
+    new_tip = models.Tip(**tip.model_dump())
     db.add(new_tip)
     db.commit()
     db.refresh(new_tip)
