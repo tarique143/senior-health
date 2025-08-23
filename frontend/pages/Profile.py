@@ -1,4 +1,4 @@
-# frontend/pages/5_Profile.py
+# frontend/pages/Profile.py (Corrected Version)
 
 import streamlit as st
 import requests
@@ -13,7 +13,8 @@ else:
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
-        self.token = st.session_state.get("token", None)
+        ### <<< CHANGE HERE
+        self.token = st.session_state.get("access_token", None)
 
     def _get_headers(self):
         if self.token:
@@ -40,8 +41,10 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 # --- SECURITY CHECK (Required on every page) ---
-if 'token' not in st.session_state:
+### <<< CHANGE HERE
+if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
+    st.switch_page("streamlit_app.py")
     st.stop()
 
 # --- PAGE CONFIG ---
