@@ -1,30 +1,27 @@
-# frontend/pages/Contacts.py (Corrected Version)
+# /frontend/pages/Contacts.py (Final Version)
 
 import streamlit as st
 import requests
 import os
 
-# --- CONFIGURATION & API CLIENT ---
-st.set_page_config(page_title="Emergency Contacts", layout="wide")
+# Hamari nayi UI file se functions import karein
+from ui_components import apply_styles, build_sidebar
 
+# Page ki shuruaat mein styles aur double-sidebar fix apply karein
+apply_styles()
+
+# --- CONFIGURATION & API CLIENT ---
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 class ApiClient:
-    def __init__(self, base_url):
-        self.base_url = base_url
+    def __init__(self, base_url): self.base_url = base_url
     def _get_headers(self):
-        ### <<< CHANGE HERE
         token = st.session_state.get("access_token")
-        if not token:
-            st.warning("Please login first.")
-            st.switch_page("streamlit_app.py")
-            st.stop()
+        if not token: st.warning("Please login first."); st.switch_page("streamlit_app.py"); st.stop()
         return {"Authorization": f"Bearer {token}"}
     def _make_request(self, method, endpoint, **kwargs):
-        try:
-            return requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), timeout=10, **kwargs)
-        except requests.exceptions.RequestException:
-            st.error("Connection Error: Could not connect to the backend server."); return None
+        try: return requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), timeout=10, **kwargs)
+        except requests.exceptions.RequestException: st.error("Connection Error."); return None
     def get(self, endpoint): return self._make_request("GET", endpoint)
     def post(self, endpoint, json=None): return self._make_request("POST", endpoint, json=json)
     def put(self, endpoint, json=None): return self._make_request("PUT", endpoint, json=json)
@@ -33,15 +30,17 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 # --- SECURITY CHECK ---
-### <<< CHANGE HERE
 if 'access_token' not in st.session_state:
     st.warning("Please login first to access this page.")
     st.switch_page("streamlit_app.py")
     st.stop()
 
+# --- PAGE SETUP ---
+st.set_page_config(page_title="Emergency Contacts", layout="wide")
+build_sidebar() # Hamara custom sidebar banayein
+
 # --- HELPER FUNCTIONS ---
 def fetch_contacts():
-    """API se contacts fetch karke session state mein save karta hai."""
     response = api.get("/contacts/")
     if response and response.status_code == 200:
         st.session_state.contacts = response.json()
@@ -55,12 +54,14 @@ if 'contacts' not in st.session_state:
 
 # --- PAGE CONTENT ---
 st.header("🆘 Emergency Contacts")
-st.write("Manage your important contacts for quick access during emergencies.")
+st.write("Manage your important contacts for quick access during emergencies. Your first contact will be used for the SOS button.")
 st.markdown("---")
 
 # --- FORM TO ADD/EDIT CONTACT ---
-with st.expander("**➕ Add New Contact** or select one below to edit", expanded=st.session_state.get('edit_mode_contact', False)):
-    
+expander_title = "➕ Add New Contact"
+if st.session_state.get('edit_mode_contact'): expander_title = "✏️ Edit Selected Contact"
+
+with st.expander(expander_title, expanded=st.session_state.get('edit_mode_contact', False)):
     edit_contact_id = st.session_state.get('edit_contact_id')
     default_values = {}
     if edit_contact_id and 'contacts' in st.session_state:
@@ -72,59 +73,54 @@ with st.expander("**➕ Add New Contact** or select one below to edit", expanded
                 "relationship_type": contact_to_edit.get('relationship_type', '')
             }
 
-    with st.form("contact_form", clear_on_submit=True):
+    with st.form("contact_form", clear_on_submit=False):
         name = st.text_input("Contact Name", value=default_values.get('name', ''))
         phone_number = st.text_input("Phone Number", value=default_values.get('phone_number', ''))
         relationship_type = st.text_input("Relationship (e.g., Son, Doctor)", value=default_values.get('relationship_type', ''))
         
-        submitted = st.form_submit_button(
-            "Update Contact" if st.session_state.get('edit_mode_contact') else "Add Contact",
-            type="primary"
-        )
-
-        if submitted:
-            if not name or not phone_number:
-                st.warning("Name and Phone Number are required.")
-            else:
-                contact_data = {
-                    "name": name,
-                    "phone_number": phone_number,
-                    "relationship_type": relationship_type
-                }
-                if st.session_state.get('edit_mode_contact'):
-                    response = api.put(f"/contacts/{st.session_state.edit_contact_id}", json=contact_data)
-                    if response and response.status_code == 200:
-                        st.toast("Contact updated!", icon="✅")
-                    else:
-                        st.error("Failed to update contact.")
+        b_col1, b_col2 = st.columns([2, 1])
+        with b_col1:
+            if st.form_submit_button("💾 Save Contact", type="primary", use_container_width=True):
+                if not name or not phone_number: st.warning("Name and Phone Number are required.")
                 else:
-                    response = api.post("/contacts/", json=contact_data)
-                    if response and response.status_code == 201:
-                        st.toast("Contact added!", icon="🎉")
+                    contact_data = {"name": name, "phone_number": phone_number, "relationship_type": relationship_type}
+                    if st.session_state.get('edit_mode_contact'):
+                        response = api.put(f"/contacts/{st.session_state.edit_contact_id}", json=contact_data)
+                        if response and response.status_code == 200: st.toast("Contact updated!", icon="✅")
+                        else: st.error("Failed to update contact.")
                     else:
-                        error_detail = "Failed to add contact. You may have reached the limit of 5 contacts."
-                        if response:
-                            try: error_detail = response.json().get('detail', error_detail)
-                            except: pass
-                        st.error(error_detail)
-
+                        response = api.post("/contacts/", json=contact_data)
+                        if response and response.status_code == 201: st.toast("Contact added!", icon="🎉")
+                        else:
+                            error_detail = "Failed to add contact."
+                            if response and response.json(): error_detail = response.json().get('detail', error_detail)
+                            st.error(error_detail)
+                    st.session_state.edit_mode_contact = False
+                    st.session_state.pop('edit_contact_id', None)
+                    fetch_contacts()
+                    st.rerun()
+        with b_col2:
+            if st.session_state.get('edit_mode_contact') and st.form_submit_button("✖️ Cancel", use_container_width=True):
                 st.session_state.edit_mode_contact = False
                 st.session_state.pop('edit_contact_id', None)
-                fetch_contacts()
                 st.rerun()
 
 # --- DISPLAY CONTACTS LIST ---
 st.subheader("Your Saved Contacts")
 
-if not st.session_state.contacts:
+if not st.session_state.get('contacts'):
     st.info("You have no emergency contacts saved. Use the form above to add one.")
 else:
-    cols = st.columns(3) # Display up to 3 contacts per row
-    col_index = 0
-    for contact in st.session_state.contacts:
-        with cols[col_index]:
+    cols = st.columns(3)
+    for i, contact in enumerate(st.session_state.contacts):
+        with cols[i % 3]:
             with st.container(border=True):
-                st.markdown(f"#### {contact['name']}")
+                if i == 0:
+                    st.markdown(f"#### {contact['name']} ⭐")
+                    st.caption("Primary SOS Contact")
+                else:
+                    st.markdown(f"#### {contact['name']}")
+                
                 st.markdown(f"*{contact.get('relationship_type', 'Contact')}*")
                 st.subheader(f"📞 {contact['phone_number']}")
                 
@@ -142,11 +138,3 @@ else:
                             fetch_contacts()
                             st.rerun()
                         else: st.error("Failed to delete.")
-        
-        col_index = (col_index + 1) % 3
-
-
-if st.session_state.get('edit_mode_contact') and st.button("Cancel Edit"):
-    st.session_state.edit_mode_contact = False
-    st.session_state.pop('edit_contact_id', None)
-    st.rerun()
