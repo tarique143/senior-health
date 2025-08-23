@@ -1,7 +1,7 @@
 # backend/app/models/medication.py
 from sqlalchemy import Column, Integer, String, Time, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from ..database import Base
+from .database import Base
 
 class Medication(Base):
     __tablename__ = "medications"
