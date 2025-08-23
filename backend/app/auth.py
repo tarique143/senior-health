@@ -7,10 +7,10 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
-from . import models
-from .database import get_db
-from .schemas import token_schema
-from .config import settings # Import the centralized settings
+from app import models
+from app.database import get_db
+from app.schemas import token_schema
+from app.config import settings
 
 # --- Password Hashing Context ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
