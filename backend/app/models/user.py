@@ -16,6 +16,7 @@ class User(Base):
     
     # === YEH NAYI LINE ADD KAREIN ===
     profile_picture_url = Column(String, nullable=True)
+    send_reminders = Column(Boolean, default=True)
 
     # Relationships
     medications = relationship("Medication", back_populates="owner", cascade="all, delete-orphan")
