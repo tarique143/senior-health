@@ -1,125 +1,160 @@
-# frontend/pages/2_Medications.py
+# frontend/pages/Medications.py (Nayi File)
 
 import streamlit as st
 import requests
+import os
 from datetime import datetime
 
-# --- CONFIGURATION & API CLIENT (Required on every page) ---
-if "API_BASE_URL" in st.secrets:
-    API_BASE_URL = st.secrets["API_BASE_URL"]
-else:
-    API_BASE_URL = "http://127.0.0.1:8000"
+# --- CONFIGURATION & API CLIENT ---
+st.set_page_config(page_title="My Medications", layout="wide")
 
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# API Client ko behtar banaya gaya hai, har method ke liye
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
-        self.token = st.session_state.get("token", None)
-
     def _get_headers(self):
-        if self.token:
-            return {"Authorization": f"Bearer {self.token}"}
-        return {}
-
+        token = st.session_state.get("token")
+        if not token:
+            st.warning("Please login first.")
+            st.switch_page("streamlit_app.py")
+            st.stop()
+        return {"Authorization": f"Bearer {token}"}
     def _make_request(self, method, endpoint, **kwargs):
         try:
-            response = requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), **kwargs)
-            return response
-        except requests.exceptions.ConnectionError:
-            st.error("Connection Error: Could not connect to the backend server.")
-            return None
-
-    def post(self, endpoint, data=None, json=None):
-        return self._make_request("POST", endpoint, data=data, json=json)
-    def get(self, endpoint, params=None):
-        return self._make_request("GET", endpoint, params=params)
-    def put(self, endpoint, json=None):
-        return self._make_request("PUT", endpoint, json=json)
-    def delete(self, endpoint):
-        return self._make_request("DELETE", endpoint)
+            return requests.request(method, f"{self.base_url}{endpoint}", headers=self._get_headers(), timeout=10, **kwargs)
+        except requests.exceptions.RequestException:
+            st.error("Connection Error: Could not connect to the backend server."); return None
+    def get(self, endpoint): return self._make_request("GET", endpoint)
+    def post(self, endpoint, json=None): return self._make_request("POST", endpoint, json=json)
+    def put(self, endpoint, json=None): return self._make_request("PUT", endpoint, json=json)
+    def delete(self, endpoint): return self._make_request("DELETE", endpoint)
 
 api = ApiClient(API_BASE_URL)
 
-# --- SECURITY CHECK (Required on every page) ---
+# --- SECURITY CHECK ---
 if 'token' not in st.session_state:
     st.warning("Please login first to access this page.")
+    st.switch_page("streamlit_app.py")
     st.stop()
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="My Medications", layout="wide")
+# --- HELPER FUNCTIONS ---
+def fetch_medications():
+    """API se dawaiyan fetch karke session state mein save karta hai."""
+    response = api.get("/medications/")
+    if response and response.status_code == 200:
+        st.session_state.medications = sorted(response.json(), key=lambda x: datetime.strptime(x['timing'], '%H:%M:%S').time())
+    else:
+        st.session_state.medications = []
+        st.error("Could not fetch medications.")
 
-# --- MEDICATION PAGE CONTENT ---
+# --- INITIAL DATA FETCH ---
+if 'medications' not in st.session_state:
+    fetch_medications()
 
-st.header("My Medications")
+# --- PAGE CONTENT ---
 
-with st.expander("➕ Add New Medication"):
-    with st.form("new_med_form", clear_on_submit=True):
-        name = st.text_input("Medication Name")
-        dosage = st.text_input("Dosage (e.g., '1 tablet', '5 ml')")
-        timing = st.time_input("Time to Take")
+st.header("💊 My Medications")
+st.write("Manage your daily medication schedule here.")
+st.markdown("---")
+
+# --- FORM TO ADD/EDIT MEDICATION ---
+# Hum expander ka istemal karenge taaki form chupa rahe jab zaroorat na ho
+with st.expander("**➕ Add New Medication** or select one below to edit", expanded=st.session_state.get('edit_mode', False)):
+    
+    # Agar edit mode mein hain, to purani values load karo
+    edit_med_id = st.session_state.get('edit_med_id')
+    default_values = {}
+    if edit_med_id and 'medications' in st.session_state:
+        med_to_edit = next((m for m in st.session_state.medications if m['id'] == edit_med_id), None)
+        if med_to_edit:
+            default_values = {
+                "name": med_to_edit.get('name', ''),
+                "dosage": med_to_edit.get('dosage', ''),
+                "timing": datetime.strptime(med_to_edit.get('timing', '08:00:00'), '%H:%M:%S').time(),
+                "is_active": med_to_edit.get('is_active', True)
+            }
+
+    with st.form("med_form", clear_on_submit=True):
+        name = st.text_input("Medication Name", value=default_values.get('name', ''))
+        dosage = st.text_input("Dosage (e.g., '1 tablet', '10mg')", value=default_values.get('dosage', ''))
+        timing = st.time_input("Time to Take", value=default_values.get('timing', datetime.now().time()))
+        is_active = st.checkbox("Medication is currently active", value=default_values.get('is_active', True))
         
-        if st.form_submit_button("Add Medication"):
-            if not name or not dosage:
-                st.warning("Please provide a name and dosage for the medication.")
+        # Submit buttons
+        submitted = st.form_submit_button(
+            "Update Medication" if st.session_state.get('edit_mode') else "Add Medication", 
+            type="primary"
+        )
+
+        if submitted:
+            med_data = {
+                "name": name,
+                "dosage": dosage,
+                "timing": timing.strftime('%H:%M:%S'),
+                "is_active": is_active
+            }
+            if st.session_state.get('edit_mode'):
+                # Update logic
+                response = api.put(f"/medications/{st.session_state.edit_med_id}", json=med_data)
+                if response and response.status_code == 200:
+                    st.toast("Medication updated!", icon="✅")
+                else:
+                    st.error("Failed to update medication.")
             else:
-                response = api.post("/medications/", json={"name": name, "dosage": dosage, "timing": timing.strftime("%H:%M:%S")})
+                # Add logic
+                response = api.post("/medications/", json=med_data)
                 if response and response.status_code == 201:
-                    st.success("Medication added successfully!")
-                    st.rerun()
+                    st.toast("Medication added!", icon="🎉")
                 else:
                     st.error("Failed to add medication.")
+            
+            # Reset state and refetch data
+            st.session_state.edit_mode = False
+            st.session_state.pop('edit_med_id', None)
+            fetch_medications()
+            st.rerun()
 
-st.subheader("Your Medication List")
+# --- DISPLAY MEDICATIONS LIST ---
 
-response = api.get("/medications/")
-if response and response.status_code == 200:
-    meds = sorted(response.json(), key=lambda x: datetime.strptime(x['timing'], '%H:%M:%S').time())
-    if not meds:
-        st.info("You have not added any medications yet. Use the form above to get started.")
-        
-    for med in meds:
-        with st.container(border=True):
-            # Check if this specific medication is being edited
-            if st.session_state.get('editing_med_id') == med['id']:
-                with st.form(key=f"edit_form_{med['id']}"):
-                    st.subheader(f"Editing: {med['name']}")
-                    
-                    # Form fields pre-filled with existing data
-                    new_name = st.text_input("Name", value=med['name'])
-                    new_dosage = st.text_input("Dosage", value=med['dosage'])
-                    new_timing_dt = datetime.strptime(med['timing'], '%H:%M:%S').time()
-                    new_timing = st.time_input("Time", value=new_timing_dt)
-                    
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        if st.form_submit_button("Save Changes"):
-                            update_data = {"name": new_name, "dosage": new_dosage, "timing": new_timing.strftime("%H:%M:%S")}
-                            put_response = api.put(f"/medications/{med['id']}", json=update_data)
-                            if put_response and put_response.status_code == 200:
-                                st.success("Medication updated!")
-                                del st.session_state['editing_med_id'] # Exit edit mode
-                                st.rerun()
-                            else:
-                                st.error("Failed to update medication.")
-                    with c2:
-                        if st.form_submit_button("Cancel", type="secondary"):
-                            del st.session_state['editing_med_id'] # Exit edit mode
-                            st.rerun()
-            else:
-                # Default view: Display the medication info
-                c1, c2, c3 = st.columns([4, 1, 1])
-                with c1:
-                    st.write(f"**{med['name']}** - {med['dosage']} at {datetime.strptime(med['timing'], '%H:%M:%S').strftime('%I:%M %p')}")
-                with c2:
-                    if st.button("Edit", key=f"edit_med_{med['id']}"):
-                        st.session_state['editing_med_id'] = med['id'] # Enter edit mode
-                        st.rerun()
-                with c3:
-                    if st.button("Delete", type="secondary", key=f"del_med_{med['id']}"):
-                        delete_response = api.delete(f"/medications/{med['id']}")
-                        if delete_response and delete_response.status_code == 204:
-                            st.toast("Medication deleted.")
-                            st.rerun()
-                        else:
-                            st.error("Failed to delete medication.")
+st.subheader("Your Schedule")
+
+if not st.session_state.medications:
+    st.info("You haven't added any medications yet. Use the form above to add your first one.")
 else:
-    st.error("Could not load your medication data from the server.")
+    for med in st.session_state.medications:
+        med_time = datetime.strptime(med['timing'], '%H:%M:%S').strftime('%I:%M %p')
+        status = "🟢 Active" if med['is_active'] else "🔴 Inactive"
+        
+        with st.container(border=True):
+            col1, col2, col3 = st.columns([4, 2, 1.5])
+            with col1:
+                st.markdown(f"#### {med['name']}")
+                st.write(f"**Dosage:** {med['dosage']}")
+            with col2:
+                st.markdown(f"**Time:** `{med_time}`")
+                st.write(f"**Status:** {status}")
+            
+            with col3:
+                # EDIT Button
+                if st.button("Edit", key=f"edit_{med['id']}", use_container_width=True):
+                    st.session_state.edit_mode = True
+                    st.session_state.edit_med_id = med['id']
+                    st.rerun()
+
+                # DELETE Button
+                if st.button("Delete", key=f"delete_{med['id']}", type="secondary", use_container_width=True):
+                    with st.spinner("Deleting..."):
+                        response = api.delete(f"/medications/{med['id']}")
+                    if response and response.status_code == 204:
+                        st.toast(f"{med['name']} deleted.", icon="🗑️")
+                        fetch_medications()
+                        st.rerun()
+                    else:
+                        st.error("Failed to delete.")
+
+if st.session_state.get('edit_mode') and st.button("Cancel Edit"):
+    st.session_state.edit_mode = False
+    st.session_state.pop('edit_med_id', None)
+    st.rerun()
