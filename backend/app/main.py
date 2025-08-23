@@ -1,44 +1,46 @@
-# backend/app/main.py
+# backend/app/main.py (Updated for Deployment)
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware # For allowing frontend communication
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+# Import settings to make CORS dynamic
+from .config import settings
 
 # Import database and models
 from .database import engine, Base 
 
 # Import all your routers
-from .routes import user_routes
-from .routes import medication_routes
-from .routes import appointment_routes
-from .routes import contact_routes
-from .routes import tip_routes
-# Import other routes as you create them (e.g., contact_routes, tip_routes)
-
+from .routes import user_routes, medication_routes, appointment_routes, contact_routes, tip_routes
 
 # --- Database Initialization ---
-# This line creates all the tables defined in your models (User, Medication, Appointment, etc.)
-# in your PostgreSQL database when the application starts.
+# This line creates all the tables defined in your models when the application starts.
 Base.metadata.create_all(bind=engine)
 
-
 # --- FastAPI Application Instance ---
-# Here, the FastAPI application object 'app' is created.
 app = FastAPI(
     title="Senior Health Support API",
     description="API for managing senior citizen's health information like medications, appointments, and contacts.",
     version="1.0.0",
 )
 
+# --- Serve Static Files (Profile Pictures) ---
+# This is a CRITICAL step. It tells FastAPI that any request to a path starting
+# with "/profile_pics" should be served as a file from the "static/profile_pics" directory.
+# Without this, you can upload photos, but you can't view them.
+app.mount("/profile_pics", StaticFiles(directory="static/profile_pics"), name="profile_pics")
 
 # --- CORS (Cross-Origin Resource Sharing) Configuration ---
-# This middleware is crucial to allow your Streamlit frontend (which runs on a different port/origin)
-# to communicate with your FastAPI backend.
+# This middleware is crucial to allow your frontend to communicate with your backend.
 origins = [
     "http://localhost",        # For local testing
     "http://localhost:8501",   # Default port for Streamlit
-    # You might need to add your Streamlit Cloud URL here if you deploy it
-    # "https://your-streamlit-app-url.streamlit.app", 
 ]
+
+# Dynamically add the deployed frontend URL from your environment settings
+# This makes your CORS configuration work in both development and production.
+if settings.FRONTEND_URL:
+    origins.append(settings.FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,19 +50,13 @@ app.add_middleware(
     allow_headers=["*"],           # Allow all headers
 )
 
-
 # --- Include Routers ---
-# These lines attach your specific API endpoints (defined in user_routes, medication_routes, etc.)
-# to the main FastAPI application instance 'app'.
+# These lines attach your specific API endpoints to the main FastAPI application.
 app.include_router(user_routes.router)
 app.include_router(medication_routes.router)
 app.include_router(appointment_routes.router)
 app.include_router(contact_routes.router)
 app.include_router(tip_routes.router)
-# Uncomment or add these as you create their respective files and content:
-# app.include_router(contact_routes.router)
-# app.include_router(tip_routes.router)
-
 
 # --- Root Endpoint (Optional) ---
 # This is a simple endpoint to check if the API is running.
