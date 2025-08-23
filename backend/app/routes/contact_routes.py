@@ -1,4 +1,4 @@
-# backend/app/routes/contact_routes.py (Updated)
+# backend/app/routes/contact_routes.py (Updated with Error Handling)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -21,12 +21,27 @@ def create_contact(
     current_user: models.User = Depends(get_current_user)
 ):
     """Creates a new emergency contact for the current user."""
+    # Check 1: Limit the total number of contacts
     existing_contacts_count = db.query(models.Contact).filter(models.Contact.owner_id == current_user.id).count()
-    if existing_contacts_count >= 5: # Limit increased to 5
+    if existing_contacts_count >= 5:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot add more than 5 emergency contacts."
         )
+
+    ### --- NAYA BADLAV YAHAN HUA HAI (START) --- ###
+    # Check 2: Prevent duplicate phone numbers for the SAME user
+    existing_contact_with_phone = db.query(models.Contact).filter(
+        models.Contact.phone_number == contact.phone_number,
+        models.Contact.owner_id == current_user.id
+    ).first()
+
+    if existing_contact_with_phone:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, # 409 Conflict is a better status code for this
+            detail=f"A contact with the phone number '{contact.phone_number}' already exists."
+        )
+    ### --- NAYA BADLAV YAHAN HUA HAI (END) --- ###
 
     new_contact = models.Contact(**contact.model_dump(), owner_id=current_user.id)
     db.add(new_contact)
@@ -62,6 +77,20 @@ def update_contact(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Contact with id {contact_id} not found"
         )
+    
+    ### --- NAYA BADLAV (UPDATE KE LIYE) --- ###
+    # Also check for duplicate phone numbers when updating
+    if contact_update.phone_number and contact_update.phone_number != db_contact.phone_number:
+        existing_contact_with_phone = db.query(models.Contact).filter(
+            models.Contact.phone_number == contact_update.phone_number,
+            models.Contact.owner_id == current_user.id
+        ).first()
+        if existing_contact_with_phone:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Another contact already has the phone number '{contact_update.phone_number}'."
+            )
+    ### --- NAYA BADLAV (END) --- ###
         
     update_data = contact_update.model_dump(exclude_unset=True)
     contact_query.update(update_data, synchronize_session=False)
