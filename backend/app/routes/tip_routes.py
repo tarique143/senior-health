@@ -6,9 +6,10 @@ from sqlalchemy.sql.expression import func
 import random
 
 from . import models
-from .database import get_db
-from .schemas import tip_schema
-from .auth import get_current_user # To protect routes if needed
+from .datfrom app import models
+from app.database import get_db
+from app.schemas import tip_schema
+from app.auth import get_current_userr # To protect routes if needed
 
 # Create a new router for tips
 router = APIRouter(
