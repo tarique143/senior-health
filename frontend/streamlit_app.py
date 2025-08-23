@@ -1,4 +1,4 @@
-# frontend/streamlit_app.py (Fully Complete Final Version with Behtareen UI)
+# frontend/streamlit_app.py (100% Complete Final Version with All Fixes & UI)
 
 import streamlit as st
 import requests
@@ -45,14 +45,11 @@ def apply_global_styles():
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
             }
             .stButton > button {
-                border-radius: 10px !important;
-                font-weight: bold !important;
-                transition: all 0.2s ease-in-out !important;
-                border: 2px solid #0068C9 !important;
+                border-radius: 10px !important; font-weight: bold !important;
+                transition: all 0.2s ease-in-out !important; border: 2px solid #0068C9 !important;
             }
             .stButton > button:hover {
-                transform: scale(1.02);
-                background-color: #0068C9 !important;
+                transform: scale(1.02); background-color: #0068C9 !important;
                 color: white !important;
             }
         </style>
@@ -83,6 +80,11 @@ def apply_themed_styles():
             transition: background-color 0.3s ease;
         }
         .emergency-bar:hover { background-color: #ef233c; }
+
+        /* Double Sidebar Fix */
+        [data-testid="stSidebarNav"] {
+            display: none;
+        }
         </style>
     """, unsafe_allow_html=True)
 
