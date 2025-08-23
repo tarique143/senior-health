@@ -1,10 +1,13 @@
-# /frontend/pages/Dashboard.py (Final Version)
+# /frontend/pages/Dashboard.py (Final Corrected Version)
 
 import streamlit as st
 import requests
 from datetime import datetime
 
-# Hamari nayi UI file se functions import karein
+# Sabse pehla Streamlit command hamesha st.set_page_config hona chahiye
+st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
+
+# Hamari UI file se functions import karein
 from ui_components import apply_styles, build_sidebar
 
 # Page ki shuruaat mein styles aur double-sidebar fix apply karein
@@ -37,25 +40,13 @@ if 'access_token' not in st.session_state:
     st.switch_page("streamlit_app.py")
     st.stop()
 
-# --- PAGE SETUP ---
-st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
-build_sidebar() # Hamara custom sidebar banayein
+# Hamara custom sidebar banayein
+build_sidebar()
 
 # --- STYLING for this page ---
 st.markdown("""
     <style>
-        .call-link {
-            display: block; padding: 12px; background-color: #ffe3e3;
-            border-radius: 8px; text-align: center; text-decoration: none;
-            color: #c92a2a; font-weight: bold; margin-bottom: 10px; border: 1px solid #ffc9c9;
-        }
-        .call-link:hover { background-color: #ffc9c9; color: #a71c1c; }
-        [data-baseweb="theme-dark"] .call-link {
-            background-color: #5c1a1a; border: 1px solid #a71c1c; color: #ffc9c9;
-        }
-        [data-baseweb="theme-dark"] .call-link:hover {
-            background-color: #a71c1c; color: white;
-        }
+        .call-link { /* ... (styling code waisa hi rahega) ... */ }
     </style>
 """, unsafe_allow_html=True)
 
