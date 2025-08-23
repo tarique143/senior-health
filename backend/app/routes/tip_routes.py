@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 import random
 
-from .. import models
-from ..database import get_db
-from ..schemas import tip_schema
-from ..auth import get_current_user # To protect routes if needed
+from . import models
+from .database import get_db
+from .schemas import tip_schema
+from .auth import get_current_user # To protect routes if needed
 
 # Create a new router for tips
 router = APIRouter(
