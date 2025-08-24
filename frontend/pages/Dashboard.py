@@ -7,6 +7,7 @@ import requests
 import streamlit as st
 
 # --- 1. PAGE CONFIGURATION ---
+# KEY CHANGE: This is now the first Streamlit command in the script.
 st.set_page_config(page_title="Dashboard", layout="wide", icon="📈")
 
 # --- 2. Custom UI Components ---
@@ -39,7 +40,6 @@ class ApiClient:
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException:
-            # Errors will be handled by the calling function, so we don't show a generic one here.
             return None
 
     def get(self, endpoint: str): return self._make_request("GET", endpoint)
@@ -56,28 +56,16 @@ if 'access_token' not in st.session_state:
 st.markdown("""
     <style>
         .call-link {
-            display: block;
-            padding: 10px 15px;
-            background-color: #e0f7fa;
-            border-left: 5px solid #00796b;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            text-decoration: none;
-            color: #004d40;
-            transition: background-color 0.2s;
+            display: block; padding: 10px 15px; background-color: #e0f7fa;
+            border-left: 5px solid #00796b; border-radius: 5px; margin-bottom: 10px;
+            text-decoration: none; color: #004d40; transition: background-color 0.2s;
         }
-        .call-link:hover {
-            background-color: #b2dfdb;
-        }
-        .strikethrough {
-            text-decoration: line-through;
-            color: #888;
-        }
+        .call-link:hover { background-color: #b2dfdb; }
+        .strikethrough { text-decoration: line-through; color: #888; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- State Management for Today's Checklist ---
-# Tie the checklist state to the current date to ensure it resets every day.
 today_str = date.today().isoformat()
 if f"taken_meds_{today_str}" not in st.session_state:
     st.session_state[f"taken_meds_{today_str}"] = []
@@ -89,7 +77,7 @@ def handle_take_med(med_id: int):
 
 
 # --- DATA FETCHING (with Caching) ---
-@st.cache_data(ttl=300)  # Cache the data for 5 minutes
+@st.cache_data(ttl=300)
 def get_dashboard_data():
     """Fetches all necessary data for the dashboard from the API."""
     meds_resp = api.get("/medications/")
@@ -107,7 +95,6 @@ def get_dashboard_data():
 with st.spinner("Loading your dashboard..."):
     all_meds, all_apps, health_tip, contacts = get_dashboard_data()
 
-
 # --- Process Data for Today ---
 active_meds_today = [m for m in all_meds if m['is_active']]
 today = datetime.now().date()
@@ -115,7 +102,6 @@ today_apps = [
     app for app in all_apps
     if datetime.fromisoformat(app['appointment_datetime']).date() == today
 ]
-
 
 # --- Main Page Content ---
 st.header("📈 Your Daily Dashboard")
@@ -136,7 +122,6 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 
 with col1:
-    # --- INTERACTIVE MEDICATION CHECKLIST ---
     with st.container(border=True):
         st.subheader("💊 Today's Medication Checklist")
         if not active_meds_today:
@@ -146,7 +131,6 @@ with col1:
             for med in sorted_meds:
                 med_id = med['id']
                 is_taken = med_id in st.session_state[f"taken_meds_{today_str}"]
-                
                 c1, c2 = st.columns([4, 2])
                 with c1:
                     med_time = datetime.strptime(med['timing'], '%H:%M:%S').strftime('%I:%M %p')
@@ -156,40 +140,28 @@ with col1:
                     else:
                         st.markdown(label)
                 with c2:
-                    if is_taken:
-                        st.success("Taken ✔", icon="✅")
-                    else:
-                        st.button(
-                            "Mark as Taken",
-                            key=f"take_med_{med_id}",
-                            on_click=handle_take_med,
-                            args=(med_id,),
-                            use_container_width=True,
-                            disabled=is_taken
-                        )
+                    st.button(
+                        "Mark as Taken", key=f"take_med_{med_id}", on_click=handle_take_med,
+                        args=(med_id,), use_container_width=True, disabled=is_taken
+                    )
 
-    # --- TODAY'S APPOINTMENTS ---
     with st.container(border=True):
         st.subheader("🗓️ Today's Appointments")
         if not today_apps:
             st.write("You have no appointments scheduled for today.")
         else:
-            sorted_apps = sorted(today_apps, key=lambda x: x['appointment_datetime'])
-            for app in sorted_apps:
+            for app in sorted(today_apps, key=lambda x: x['appointment_datetime']):
                 app_time = datetime.fromisoformat(app['appointment_datetime']).strftime('%I:%M %p')
                 st.info(f"**Dr. {app['doctor_name']}** at **{app_time}** for '{app.get('purpose', 'a check-up')}'")
 
 with col2:
-    # --- EMERGENCY CONTACTS ---
     with st.container(border=True):
         st.subheader("🆘 Emergency Contacts")
         if contacts:
-            # Display up to the first 3 contacts for a clean look.
             for contact in contacts[:3]:
                 st.markdown(
                     f'<a href="tel:{contact["phone_number"]}" class="call-link" target="_blank">'
-                    f'Call {contact["name"]}<br><small>{contact["phone_number"]}</small>'
-                    f'</a>',
+                    f'Call {contact["name"]}<br><small>{contact["phone_number"]}</small></a>',
                     unsafe_allow_html=True
                 )
         else:
@@ -197,10 +169,9 @@ with col2:
             if st.button("Add a Contact"):
                 st.switch_page("pages/Contacts.py")
 
-    # --- HEALTH TIP ---
     with st.container(border=True):
         st.subheader("💡 Today's Health Tip")
         if health_tip:
             st.info(f"**{health_tip['category']}:** {health_tip['content']}")
         else:
-            st.warning("Could not fetch a health tip at this moment.")
+            st.warning("Could not fetch a health tip right now.")
