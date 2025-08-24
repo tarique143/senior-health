@@ -7,6 +7,7 @@ import requests
 import streamlit as st
 
 # --- 1. PAGE CONFIGURATION ---
+# KEY CHANGE: This is now the first Streamlit command in the script.
 st.set_page_config(page_title="My Medications", layout="wide", icon="💊")
 
 # --- 2. Custom UI Components ---
@@ -57,13 +58,11 @@ if 'access_token' not in st.session_state:
     st.switch_page("streamlit_app.py")
     st.stop()
 
-
 # --- Helper Function ---
 def fetch_medications():
     """Fetches medications from the API and stores them in the session state."""
     response = api.get("/medications/")
     if response and response.status_code == 200:
-        # Sort medications by time for a chronological schedule.
         st.session_state.medications = sorted(
             response.json(), key=lambda x: datetime.strptime(x['timing'], '%H:%M:%S').time()
         )
@@ -74,7 +73,6 @@ def fetch_medications():
 if 'medications' not in st.session_state:
     with st.spinner("Loading your medications..."):
         fetch_medications()
-
 
 # --- Main Page Content ---
 st.header("💊 My Medications")
@@ -119,10 +117,8 @@ with st.expander(expander_title, expanded=is_edit_mode or not st.session_state.g
                     st.warning("Name and Dosage are required fields.")
                 else:
                     med_data = {
-                        "name": name.strip(),
-                        "dosage": dosage.strip(),
-                        "timing": timing.strftime('%H:%M:%S'),
-                        "is_active": is_active
+                        "name": name.strip(), "dosage": dosage.strip(),
+                        "timing": timing.strftime('%H:%M:%S'), "is_active": is_active
                     }
                     if is_edit_mode:
                         response = api.put(f"/medications/{st.session_state.edit_med_id}", json_data=med_data)
