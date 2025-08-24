@@ -1,22 +1,18 @@
-# /frontend/pages/Dashboard.py (Final Behtareen & Interactive Version)
-
 import streamlit as st
 import requests
 from datetime import datetime, date
 import os
 
-# Sabse pehla Streamlit command hamesha st.set_page_config hona chahiye
+# 1. Sabse pehla Streamlit command hamesha st.set_page_config hona chahiye
 st.set_page_config(page_title="Dashboard - Health Companion", layout="wide")
 
-# Hamari UI file se functions import karein
+# 2. Uske baad baaki imports aur setup
 from ui_components import apply_styles, build_sidebar
-
-# Page ki shuruaat mein styles aur double-sidebar fix apply karein
 apply_styles()
 
-# --- CONFIGURATION & API CLIENT ---
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
+# --- API CLIENT CLASS ---
 class ApiClient:
     def __init__(self, base_url):
         self.base_url = base_url
@@ -40,7 +36,7 @@ if 'access_token' not in st.session_state:
     st.switch_page("streamlit_app.py")
     st.stop()
 
-# Hamara custom sidebar banayein
+# --- SIDEBAR ---
 build_sidebar()
 
 # --- STYLING for this page ---
@@ -57,11 +53,10 @@ if f"taken_meds_{today_str}" not in st.session_state:
     st.session_state[f"taken_meds_{today_str}"] = []
 
 def handle_take_med(med_id):
-    """Callback function to mark a medication as taken."""
     st.session_state[f"taken_meds_{today_str}"].append(med_id)
 
 # --- DATA FETCHING ---
-@st.cache_data(ttl=300) # Data ko 5 minute ke liye cache karein
+@st.cache_data(ttl=300)
 def get_dashboard_data():
     meds = api.get("/medications/")
     apps = api.get("/appointments/")
@@ -72,23 +67,19 @@ def get_dashboard_data():
 meds_response, apps_response, tips_response, contacts_response = get_dashboard_data()
 
 # --- PAGE CONTENT ---
-
-# Filter data for today
 active_meds_today = []
 if meds_response and meds_response.status_code == 200:
     active_meds_today = [m for m in meds_response.json() if m['is_active']]
-
 today_apps = []
 if apps_response and apps_response.status_code == 200:
     today = datetime.now().date()
     today_apps = [app for app in apps_response.json() if datetime.fromisoformat(app['appointment_datetime']).date() == today]
 
-# Personalized Greeting
 st.header(f"Your Daily Dashboard")
 st.markdown(f"Hello **{st.session_state.get('user_email', '').split('@')[0].capitalize()}**! You have **{len(active_meds_today)}** medications and **{len(today_apps)}** appointments scheduled for today.")
 st.markdown("---")
 
-# --- MEDICATION PROGRESS BAR ---
+# Medication Progress Bar
 taken_count = len(st.session_state[f"taken_meds_{today_str}"])
 total_meds = len(active_meds_today)
 if total_meds > 0:
