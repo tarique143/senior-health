@@ -10,9 +10,15 @@ from streamlit_calendar import calendar
 
 # Hamari nayi UI file se functions import karein
 from ui_components import apply_styles, build_sidebar
+# 1. Sabse pehle st.set_page_config
+st.set_page_config(page_title="Page Title", layout="wide") 
 
-# Page ki shuruaat mein styles aur double-sidebar fix apply karein
+# 2. Fir baaki sab kuch
+from ui_components import apply_styles, build_sidebar
 apply_styles()
+
+ 
+ 
 
 # --- CONFIGURATION & API CLIENT ---
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
