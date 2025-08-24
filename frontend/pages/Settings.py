@@ -7,6 +7,7 @@ import requests
 import streamlit as st
 
 # --- 1. PAGE CONFIGURATION ---
+# KEY CHANGE: This is now the first Streamlit command in the script.
 st.set_page_config(page_title="Settings", layout="wide", icon="⚙️")
 
 # --- 2. Custom UI Components ---
@@ -31,6 +32,7 @@ class ApiClient:
             st.switch_page("streamlit_app.py")
             st.stop()
         headers = {"Authorization": f"Bearer {token}"}
+        # Don't set Content-Type for file uploads; `requests` handles the boundary.
         if is_json:
             headers["Content-Type"] = "application/json"
         return headers
@@ -61,7 +63,6 @@ if 'access_token' not in st.session_state:
     st.switch_page("streamlit_app.py")
     st.stop()
 
-
 # --- Helper Function ---
 def fetch_user_profile():
     """Fetches the user's profile data from the API."""
@@ -87,7 +88,6 @@ st.markdown("---")
 
 tab1, tab2 = st.tabs(["**👤 My Profile & Preferences**", "**🔑 Change Password**"])
 
-# --- TAB 1: Profile and Preferences ---
 with tab1:
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -112,13 +112,10 @@ with tab1:
     with col2:
         st.subheader("Personal Information")
         with st.form("profile_form"):
-            # Safely parse the date of birth
             dob_value = None
             if profile.get("date_of_birth"):
-                try:
-                    dob_value = datetime.strptime(profile["date_of_birth"], "%Y-%m-%d").date()
-                except (ValueError, TypeError):
-                    dob_value = None
+                try: dob_value = datetime.strptime(profile["date_of_birth"], "%Y-%m-%d").date()
+                except (ValueError, TypeError): dob_value = None
 
             full_name = st.text_input("Full Name", value=profile.get("full_name", ""))
             date_of_birth = st.date_input("Date of Birth", value=dob_value, min_value=datetime(1920, 1, 1).date())
@@ -139,9 +136,7 @@ with tab1:
 
         st.markdown("---")
         st.subheader("Preferences")
-
         def handle_reminder_toggle():
-            """Callback to update reminder preference instantly."""
             new_status = st.session_state.reminder_toggle
             with st.spinner("Updating preference..."):
                 response = api.put("/users/me", json_data={"send_reminders": new_status})
@@ -149,18 +144,15 @@ with tab1:
                 fetch_user_profile()
                 st.toast(f"Email reminders turned {'ON' if new_status else 'OFF'}.", icon="📧")
             else:
-                # If the API call fails, revert the toggle to its previous state
                 st.session_state.reminder_toggle = not new_status
 
         st.toggle(
             "Receive Daily Medication Reminders by Email",
             value=profile.get("send_reminders", True),
-            key="reminder_toggle",
-            on_change=handle_reminder_toggle,
+            key="reminder_toggle", on_change=handle_reminder_toggle,
             help="If enabled, you will receive an email every morning with your medication schedule."
         )
 
-# --- TAB 2: Change Password ---
 with tab2:
     st.subheader("Set a New Password")
     with st.form("password_form", clear_on_submit=True):
@@ -181,4 +173,3 @@ with tab2:
                     response = api.put("/users/me/password", json_data=update_data)
                 if response and response.status_code == 200:
                     st.success("Your password has been updated successfully!")
-                # Specific error handling is now done within the ApiClient
