@@ -9,8 +9,8 @@ localS = LocalStorage()
 def apply_styles():
     """
     Applies global CSS styles to the Streamlit application.
-    This includes a critical fix to hide Streamlit's default page navigation
-    when using a custom sidebar, thus preventing the "double sidebar" issue.
+    This includes the fix to hide Streamlit's default page navigation,
+    thus preventing the "double sidebar" issue.
     """
     st.markdown("""
         <style>
@@ -26,7 +26,6 @@ def apply_styles():
             .stButton > button:hover {
                 transform: scale(1.02); background-color: #0068C9 !important; color: white !important;
             }
-
             /* --- Emergency SOS Bar --- */
             .emergency-bar {
                 display: block; width: 100%; background-color: #dc3545; color: white;
@@ -35,10 +34,7 @@ def apply_styles():
                 transition: background-color 0.3s;
             }
             .emergency-bar:hover { background-color: #c82333; color: white; }
-
-            /* --- YAHI FIX HAI (THIS IS THE FIX) --- */
-            /* Yeh Streamlit ke automatic page navigator ko hamesha ke liye chupa deta hai,
-               jisse double sidebar ki samasya theek ho jaati hai. */
+            /* --- FIX for Double Sidebar --- */
             [data-testid="stSidebarNav"] {
                 display: none;
             }
@@ -67,7 +63,7 @@ def build_sidebar():
 
         # --- Logout Button ---
         if st.button("Logout", use_container_width=True):
-            # Added unique keys for each deleteItem call to prevent conflicts
+            # Added unique keys for each deleteItem call
             localS.deleteItem("access_token", key="storage_access_token_del")
             localS.deleteItem("user_email", key="storage_user_email_del")
             st.session_state.clear()
