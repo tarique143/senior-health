@@ -6,6 +6,7 @@ import requests
 import streamlit as st
 
 # --- 1. PAGE CONFIGURATION ---
+# KEY CHANGE: This is now the first Streamlit command in the script.
 st.set_page_config(page_title="Emergency Contacts", layout="wide", icon="🆘")
 
 # --- 2. Custom UI Components ---
@@ -35,17 +36,13 @@ class ApiClient:
         url = f"{self.base_url}{endpoint}"
         try:
             response = requests.request(method, url, headers=self._get_headers(), timeout=15, **kwargs)
-            # Raise an HTTPError for bad responses (4xx or 5xx)
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as e:
-            # Display the specific error message from the backend API
             error_detail = e.response.json().get('detail', 'An unknown API error occurred.')
             st.error(f"Error: {error_detail}")
         except requests.exceptions.ConnectionError:
             st.error("Connection Error: Could not connect to the server.")
-        except requests.exceptions.RequestException as e:
-            st.error(f"An unexpected error occurred: {e}")
         return None
 
     def get(self, endpoint: str): return self._make_request("GET", endpoint)
@@ -61,21 +58,16 @@ if 'access_token' not in st.session_state:
     st.switch_page("streamlit_app.py")
     st.stop()
 
-
 # --- Helper Function ---
 def fetch_contacts():
     """Fetches contacts from the API and stores them in the session state."""
     response = api.get("/contacts/")
-    if response and response.status_code == 200:
-        st.session_state.contacts = response.json()
-    else:
-        st.session_state.contacts = []
+    st.session_state.contacts = response.json() if response and response.status_code == 200 else []
 
 # --- Initial Data Fetch ---
 if 'contacts' not in st.session_state:
     with st.spinner("Loading your contacts..."):
         fetch_contacts()
-
 
 # --- Main Page Content ---
 st.header("🆘 Emergency Contacts")
@@ -107,7 +99,6 @@ with st.expander(expander_title, expanded=is_edit_mode or len(st.session_state.g
             phone_number = st.text_input("Phone Number*", value=default_values.get('phone_number', ''))
             relationship_type = st.text_input("Relationship (e.g., Son, Doctor)", value=default_values.get('relationship_type', ''))
 
-            # --- Form Buttons ---
             b_col1, b_col2, b_col3 = st.columns([2, 1, 3])
             with b_col1:
                 save_button = st.form_submit_button("💾 Save Contact", type="primary", use_container_width=True)
@@ -117,7 +108,6 @@ with st.expander(expander_title, expanded=is_edit_mode or len(st.session_state.g
             else:
                 cancel_button = False
 
-            # --- Form Submission Logic ---
             if save_button:
                 if not name or not phone_number:
                     st.warning("Name and Phone Number are required fields.")
@@ -152,12 +142,10 @@ contacts = st.session_state.get('contacts', [])
 if not contacts:
     st.info("You have no emergency contacts saved yet. Use the form above to add one.")
 else:
-    # Create a responsive grid layout.
     cols = st.columns(3)
     for i, contact in enumerate(contacts):
         with cols[i % 3]:
             with st.container(border=True):
-                # Highlight the primary SOS contact.
                 if i == 0:
                     st.markdown(f"#### {contact['name']} ⭐")
                     st.caption("Primary SOS Contact")
@@ -165,7 +153,6 @@ else:
                     st.markdown(f"#### {contact['name']}")
 
                 st.markdown(f"*{contact.get('relationship_type', 'Contact')}*")
-                # Use a larger font for the phone number for readability.
                 st.markdown(f"<h3>📞 {contact['phone_number']}</h3>", unsafe_allow_html=True)
 
                 b_col1, b_col2 = st.columns(2)
