@@ -13,7 +13,7 @@ from streamlit_local_storage import LocalStorage
 
 # --- 2. PAGE CONFIGURATION ---
 # This MUST be the very first Streamlit command.
-# THE FIX IS HERE: `icon` has been corrected to `page_icon`.
+# FIX: The keyword argument is `page_icon`, not `icon`.
 st.set_page_config(
     page_title="Health Companion",
     layout="wide",
@@ -22,6 +22,7 @@ st.set_page_config(
 )
 
 # --- 3. LOCAL IMPORTS (YOUR OTHER .PY FILES) ---
+# Import custom modules AFTER page config.
 from ui_components import apply_styles, build_sidebar
 
 # --- 4. GLOBAL VARIABLES & CONSTANTS ---
@@ -29,6 +30,7 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 localS = LocalStorage()
 
 # --- 5. EXECUTION OF INITIAL UI SETUP ---
+# Now it's safe to run functions that use Streamlit commands.
 apply_styles()
 
 
@@ -75,10 +77,7 @@ def create_header():
 def create_sos_bar():
     """Displays an emergency SOS bar."""
     response = api.get("/contacts/")
-    emergency_contact = None
-    if response and response.status_code == 200 and response.json():
-        emergency_contact = response.json()[0]
-
+    emergency_contact = response.json()[0] if response and response.status_code == 200 and response.json() else None
     if emergency_contact:
         st.markdown(
             f'<a href="tel:{emergency_contact["phone_number"]}" class="emergency-bar" target="_blank">🚨 EMERGENCY SOS (Call {emergency_contact["name"]}) 🚨</a>',
@@ -89,6 +88,7 @@ def create_sos_bar():
             '<a href="/Contacts" class="emergency-bar" target="_self">⚠️ Set Up Your Primary SOS Contact ⚠️</a>',
             unsafe_allow_html=True
         )
+
 
 # --- 8. PAGE RENDERING LOGIC ---
 def show_login_register_page():
@@ -113,7 +113,9 @@ def show_login_register_page():
                     st.session_state['access_token'] = token
                     st.session_state['user_email'] = email
                     if remember_me:
-                        localS.setItem("access_token", token); localS.setItem("user_email", email)
+                        # FIX: Added unique keys for each setItem call to prevent conflicts
+                        localS.setItem("access_token", token, key="storage_access_token_set")
+                        localS.setItem("user_email", email, key="storage_user_email_set")
                     st.toast("Login successful!", icon="🎉"); st.rerun()
                 else:
                     st.error("Incorrect email or password.")
@@ -127,7 +129,7 @@ def show_login_register_page():
                 forgot_email = st.text_input("Enter your registered email", key="forgot_email")
                 if st.form_submit_button("Send Reset Link"):
                     with st.spinner("Sending..."): api.post("/users/forgot-password", json={"email": forgot_email})
-                    st.success("If an account exists, a reset link has been sent."); time.sleep(2)
+                    st.success("If an account with that email exists, a reset link has been sent."); time.sleep(2)
                     st.session_state.show_forgot_password = False; st.rerun()
 
     with register_tab:
@@ -172,28 +174,42 @@ def show_main_app_area():
     st.markdown("---")
     st.subheader("Navigate to a Section")
     nav_cols = st.columns(4)
-    pages = { "Dashboard": {"icon": "📈", "desc": "View your daily schedule and health tips.", "page": "pages/Dashboard.py"}, "Medications": {"icon": "💊", "desc": "Add, edit, or view your medication list.", "page": "pages/Medications.py"}, "Appointments": {"icon": "🗓️", "desc": "Keep track of all your doctor visits.", "page": "pages/Appointments.py"}, "Settings": {"icon": "⚙️", "desc": "Update your profile and preferences.", "page": "pages/Settings.py"} }
+    pages = {
+        "Dashboard":    {"icon": "📈", "desc": "View your daily schedule and health tips.", "page": "pages/Dashboard.py"},
+        "Medications":  {"icon": "💊", "desc": "Add, edit, or view your medication list.", "page": "pages/Medications.py"},
+        "Appointments": {"icon": "🗓️", "desc": "Keep track of all your doctor visits.", "page": "pages/Appointments.py"},
+        "Settings":     {"icon": "⚙️", "desc": "Update your profile and preferences.", "page": "pages/Settings.py"}
+    }
     for i, (page_name, details) in enumerate(pages.items()):
         with nav_cols[i]:
             with st.container(border=True):
                 st.markdown(f"### {details['icon']} {page_name}")
                 st.caption(details['desc'])
-                if st.button(f"Go to {page_name}", use_container_width=True, key=f"nav_{page_name}"): st.switch_page(details['page'])
+                if st.button(f"Go to {page_name}", use_container_width=True, key=f"nav_{page_name}"):
+                    st.switch_page(details['page'])
 
 # --- 9. MAIN APPLICATION CONTROLLER ---
 def main():
     """Controls the application flow."""
     if 'access_token' not in st.session_state:
         try:
-            token = localS.getItem("access_token"); email = localS.getItem("user_email")
+            # FIX: Added unique keys for each getItem call to prevent conflicts
+            token = localS.getItem("access_token", key="storage_access_token_get")
+            email = localS.getItem("user_email", key="storage_user_email_get")
             if token and email:
-                st.session_state['access_token'] = token; st.session_state['user_email'] = email; st.rerun()
-        except TypeError: pass
+                st.session_state['access_token'] = token
+                st.session_state['user_email'] = email
+                st.rerun()
+        except TypeError: # This can happen on the first run if local storage is empty.
+            pass
 
     if "access_token" not in st.session_state:
         show_login_register_page()
     else:
-        build_sidebar(); create_header(); create_sos_bar(); show_main_app_area()
+        build_sidebar()
+        create_header()
+        create_sos_bar()
+        show_main_app_area()
 
 if __name__ == "__main__":
     main()
