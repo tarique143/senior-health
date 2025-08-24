@@ -12,16 +12,16 @@ import streamlit as st
 from streamlit_local_storage import LocalStorage
 
 # --- 2. PAGE CONFIGURATION ---
-# This MUST be the very first Streamlit command. Nothing Streamlit-related before it.
+# This MUST be the very first Streamlit command.
+# THE FIX IS HERE: `icon` has been corrected to `page_icon`.
 st.set_page_config(
     page_title="Health Companion",
     layout="wide",
     initial_sidebar_state="expanded",
-    icon="🏠"
+    page_icon="🏠"
 )
 
 # --- 3. LOCAL IMPORTS (YOUR OTHER .PY FILES) ---
-# Your custom modules that contain Streamlit commands are imported AFTER page config.
 from ui_components import apply_styles, build_sidebar
 
 # --- 4. GLOBAL VARIABLES & CONSTANTS ---
@@ -29,7 +29,6 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 localS = LocalStorage()
 
 # --- 5. EXECUTION OF INITIAL UI SETUP ---
-# It's now safe to run functions that use Streamlit commands.
 apply_styles()
 
 
@@ -50,7 +49,7 @@ class ApiClient:
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401: return None # Handle login failure silently
+            if e.response.status_code == 401: return None
             st.error(f"API Error: {e.response.json().get('detail', 'Unknown error')}")
         except requests.exceptions.RequestException:
             st.error("Connection Error: Could not connect to the backend server.")
@@ -91,7 +90,6 @@ def create_sos_bar():
             unsafe_allow_html=True
         )
 
-
 # --- 8. PAGE RENDERING LOGIC ---
 def show_login_register_page():
     """Displays the forms for login, registration, and password reset."""
@@ -115,8 +113,7 @@ def show_login_register_page():
                     st.session_state['access_token'] = token
                     st.session_state['user_email'] = email
                     if remember_me:
-                        localS.setItem("access_token", token)
-                        localS.setItem("user_email", email)
+                        localS.setItem("access_token", token); localS.setItem("user_email", email)
                     st.toast("Login successful!", icon="🎉"); st.rerun()
                 else:
                     st.error("Incorrect email or password.")
@@ -175,41 +172,28 @@ def show_main_app_area():
     st.markdown("---")
     st.subheader("Navigate to a Section")
     nav_cols = st.columns(4)
-    pages = {
-        "Dashboard":    {"icon": "📈", "desc": "View your daily schedule and health tips.", "page": "pages/Dashboard.py"},
-        "Medications":  {"icon": "💊", "desc": "Add, edit, or view your medication list.", "page": "pages/Medications.py"},
-        "Appointments": {"icon": "🗓️", "desc": "Keep track of all your doctor visits.", "page": "pages/Appointments.py"},
-        "Settings":     {"icon": "⚙️", "desc": "Update your profile and preferences.", "page": "pages/Settings.py"}
-    }
+    pages = { "Dashboard": {"icon": "📈", "desc": "View your daily schedule and health tips.", "page": "pages/Dashboard.py"}, "Medications": {"icon": "💊", "desc": "Add, edit, or view your medication list.", "page": "pages/Medications.py"}, "Appointments": {"icon": "🗓️", "desc": "Keep track of all your doctor visits.", "page": "pages/Appointments.py"}, "Settings": {"icon": "⚙️", "desc": "Update your profile and preferences.", "page": "pages/Settings.py"} }
     for i, (page_name, details) in enumerate(pages.items()):
         with nav_cols[i]:
             with st.container(border=True):
                 st.markdown(f"### {details['icon']} {page_name}")
                 st.caption(details['desc'])
-                if st.button(f"Go to {page_name}", use_container_width=True, key=f"nav_{page_name}"):
-                    st.switch_page(details['page'])
+                if st.button(f"Go to {page_name}", use_container_width=True, key=f"nav_{page_name}"): st.switch_page(details['page'])
 
 # --- 9. MAIN APPLICATION CONTROLLER ---
 def main():
     """Controls the application flow."""
     if 'access_token' not in st.session_state:
         try:
-            token = localS.getItem("access_token")
-            email = localS.getItem("user_email")
+            token = localS.getItem("access_token"); email = localS.getItem("user_email")
             if token and email:
-                st.session_state['access_token'] = token
-                st.session_state['user_email'] = email
-                st.rerun()
-        except TypeError: # Occurs on first run when storage is empty
-            pass
+                st.session_state['access_token'] = token; st.session_state['user_email'] = email; st.rerun()
+        except TypeError: pass
 
     if "access_token" not in st.session_state:
         show_login_register_page()
     else:
-        build_sidebar()
-        create_header()
-        create_sos_bar()
-        show_main_app_area()
+        build_sidebar(); create_header(); create_sos_bar(); show_main_app_area()
 
 if __name__ == "__main__":
     main()
