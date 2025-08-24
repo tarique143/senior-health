@@ -7,7 +7,11 @@ import os
 # Hamari nayi UI file se functions import karein
 from ui_components import apply_styles, build_sidebar
 
-# Page ki shuruaat mein styles aur double-sidebar fix apply karein
+# 1. Sabse pehle st.set_page_config
+st.set_page_config(page_title="Page Title", layout="wide") 
+
+# 2. Fir baaki sab kuch
+from ui_components import apply_styles, build_sidebar
 apply_styles()
 
 # --- CONFIGURATION & API CLIENT ---
