@@ -1,7 +1,16 @@
 # /frontend/streamlit_app.py
 
-# --- 1. STANDARD & THIRD-PARTY IMPORTS ---
+# --- 1. SABSE ZAROORI FIX (THE MOST IMPORTANT FIX) ---
+# YEH NAYA CODE HAI JO IMPORT ERROR KO HAMESHA KE LIYE THEEK KAREGA
+import sys
 import os
+
+# Is file (streamlit_app.py) ka poora path lo, uske folder (frontend) ka path nikalo,
+# aur us folder ko Python ke search path mein daal do.
+# Ab Python ko hamesha ui_components.py mil jaayega.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# --- 2. STANDARD & THIRD-PARTY IMPORTS ---
 import random
 import time
 from datetime import date, datetime
@@ -11,9 +20,8 @@ import requests
 import streamlit as st
 from streamlit_local_storage import LocalStorage
 
-# --- 2. PAGE CONFIGURATION ---
-# This MUST be the very first Streamlit command.
-# FIX: The keyword argument is `page_icon`, not `icon`.
+# --- 3. PAGE CONFIGURATION ---
+# Yeh ab bilkul sahi jagah par hai.
 st.set_page_config(
     page_title="Health Companion",
     layout="wide",
@@ -21,20 +29,19 @@ st.set_page_config(
     page_icon="🏠"
 )
 
-# --- 3. LOCAL IMPORTS (YOUR OTHER .PY FILES) ---
-# Import custom modules AFTER page config.
+# --- 4. LOCAL IMPORTS (AB YEH 100% KAAM KAREGA) ---
+# Upar diye gaye fix ke kaaran, ab yeh import kabhi fail nahi hoga.
 from ui_components import apply_styles, build_sidebar
 
-# --- 4. GLOBAL VARIABLES & CONSTANTS ---
+# --- 5. GLOBAL VARIABLES & CONSTANTS ---
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 localS = LocalStorage()
 
-# --- 5. EXECUTION OF INITIAL UI SETUP ---
-# Now it's safe to run functions that use Streamlit commands.
+# --- 6. EXECUTION OF INITIAL UI SETUP ---
 apply_styles()
 
 
-# --- 6. API CLIENT CLASS ---
+# --- 7. API CLIENT CLASS ---
 class ApiClient:
     """A client to interact with the backend API."""
     def __init__(self, base_url: str):
@@ -63,7 +70,7 @@ class ApiClient:
 api = ApiClient(API_BASE_URL)
 
 
-# --- 7. UI HELPER FUNCTIONS ---
+# --- 8. UI HELPER FUNCTIONS ---
 def create_header():
     """Displays the current time and date in IST."""
     now_ist = datetime.now(pytz.timezone("Asia/Kolkata"))
@@ -79,18 +86,12 @@ def create_sos_bar():
     response = api.get("/contacts/")
     emergency_contact = response.json()[0] if response and response.status_code == 200 and response.json() else None
     if emergency_contact:
-        st.markdown(
-            f'<a href="tel:{emergency_contact["phone_number"]}" class="emergency-bar" target="_blank">🚨 EMERGENCY SOS (Call {emergency_contact["name"]}) 🚨</a>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<a href="tel:{emergency_contact["phone_number"]}" class="emergency-bar" target="_blank">🚨 EMERGENCY SOS (Call {emergency_contact["name"]}) 🚨</a>', unsafe_allow_html=True)
     else:
-        st.markdown(
-            '<a href="/Contacts" class="emergency-bar" target="_self">⚠️ Set Up Your Primary SOS Contact ⚠️</a>',
-            unsafe_allow_html=True
-        )
+        st.markdown('<a href="/Contacts" class="emergency-bar" target="_self">⚠️ Set Up Your Primary SOS Contact ⚠️</a>', unsafe_allow_html=True)
 
 
-# --- 8. PAGE RENDERING LOGIC ---
+# --- 9. PAGE RENDERING LOGIC ---
 def show_login_register_page():
     """Displays the forms for login, registration, and password reset."""
     st.markdown('<div style="text-align:center;"><h1>Welcome to Health Companion</h1></div>', unsafe_allow_html=True)
@@ -113,7 +114,6 @@ def show_login_register_page():
                     st.session_state['access_token'] = token
                     st.session_state['user_email'] = email
                     if remember_me:
-                        # FIX: Added unique keys for each setItem call to prevent conflicts
                         localS.setItem("access_token", token, key="storage_access_token_set")
                         localS.setItem("user_email", email, key="storage_user_email_set")
                     st.toast("Login successful!", icon="🎉"); st.rerun()
@@ -188,19 +188,18 @@ def show_main_app_area():
                 if st.button(f"Go to {page_name}", use_container_width=True, key=f"nav_{page_name}"):
                     st.switch_page(details['page'])
 
-# --- 9. MAIN APPLICATION CONTROLLER ---
+# --- 10. MAIN APPLICATION CONTROLLER ---
 def main():
     """Controls the application flow."""
     if 'access_token' not in st.session_state:
         try:
-            # FIX: Added unique keys for each getItem call to prevent conflicts
             token = localS.getItem("access_token", key="storage_access_token_get")
             email = localS.getItem("user_email", key="storage_user_email_get")
             if token and email:
                 st.session_state['access_token'] = token
                 st.session_state['user_email'] = email
                 st.rerun()
-        except TypeError: # This can happen on the first run if local storage is empty.
+        except TypeError:
             pass
 
     if "access_token" not in st.session_state:
